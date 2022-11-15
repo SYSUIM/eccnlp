@@ -1,4 +1,4 @@
-# lambdarank
+lambdarank
 Reference implementation of [Burges, C., et al., 2007]
 
 模型参考https://github.com/Jabberwockleo
