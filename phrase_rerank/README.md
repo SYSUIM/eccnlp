@@ -19,4 +19,5 @@ python predict_top2.py  预测 rank top2 的准确率
 
 ps: 
 mock.py:用于解析输入的文本数据并构建pair对
+
 lambdarank.py :利用梯度上升法来更新参数
