@@ -9,7 +9,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Data Processing')
 parser.add_argument('--data', type=str, required=True, help='path of raw data')
-parser.add_argument('--length', default=5, type=str, help='minimum length of cut sentence')
+parser.add_argument('--length', default=5, type=str, help='minimum length of clause')
 parser.add_argument('--type', default='业绩归因', type=str, help='type of answer')
 parser.add_argument('--log', type=str, required=True, help='path of log file')
 args = parser.parse_args()
