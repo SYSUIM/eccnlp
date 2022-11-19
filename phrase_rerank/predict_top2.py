@@ -60,7 +60,7 @@ def add_reason(o1,reason_id,reason_list_test):
         reason_id+=1
     return reason_id, o
 
-reason_id=175
+reason_id=test_data_key_count/3*7*5
 saver = tf.train.Saver()
 all_reason_list=[]
 with tf.Session() as sess:
@@ -68,7 +68,6 @@ with tf.Session() as sess:
     sess.run(init)
     saver.restore(sess, config.MODEL_PATH)
     print("Model restored from file: %s" % config.MODEL_PATH)
-    print(test_data_key_count)
     total_pairs_count = 0
     falsepositive_pairs_count = 0
     total_queries_count = test_data_key_count
@@ -85,7 +84,6 @@ with tf.Session() as sess:
         O, o1 = sess.run([lambdarank.Y, lambdarank.y], feed_dict={lambdarank.X:X, lambdarank.Y:Y})
         reason_list_test = get_reason_list_test()
         reason_id, o = add_reason(o1,reason_id,reason_list_test)
-        # print(reason_list_test)
         o_sorted=sorted(o, key=lambda x:x[0], reverse=True)
         all_reason_list.append(o_sorted)
         result_label = "none"
@@ -102,9 +100,7 @@ with tf.Session() as sess:
             total_queries_count,
             1.0 - 1.0 * falsepositive_rank_count / total_queries_count
     ))
-# print(reason_list) 
 b=np.array(all_reason_list)
-# print(b)
 b=np.reshape(b,(-1,10)) 
 fpred.close()
 data=pd.read_csv('all_content.csv')
