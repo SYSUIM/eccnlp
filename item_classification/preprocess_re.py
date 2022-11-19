@@ -1,11 +1,11 @@
-import numpy as np
-import pandas as pd
-import csv
 import re
 import random
-import threading
 import logging
 import argparse
+
+import numpy as np
+import pandas as pd
+
 
 parser = argparse.ArgumentParser(description='Data Processing')
 parser.add_argument('--data', type=str, required=True, help='path of raw data')
@@ -14,7 +14,7 @@ parser.add_argument('--type', default='业绩归因', type=str, help='type of an
 parser.add_argument('--log', type=str, required=True, help='path of log file')
 args = parser.parse_args()
 
-def re_pattern():
+def re_pattern(args):
     Codesdf = pd.read_excel(args.data)
 
     #仅保留前三类问题以及归因在问题中的样本
@@ -73,7 +73,7 @@ def re_pattern():
     Codesdf=Codesdf.drop(columns=['Length'])
     return Codesdf
 
-def get_dataset(data):
+def get_dataset(data, args):
     sentence_dict = {}
     sentence_set = set()
     for index, row in data.iterrows():
@@ -144,7 +144,3 @@ def get_dataset(data):
     logging.info('训练集均衡后数量：' + str(len(train_balance_list)))
 
     return sentence_dict, data_train, data_val, data_test
-    
-if __name__ == '__main__':
-    data = re_pattern()
-    get_dataset(data)
