@@ -1,23 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-########################################################################
-#
-# Copyright (c) 2017 Wan Li. All Rights Reserved
-#
-########################################################################
-
-"""
-File: lambdarank.py
-Author: Wan Li
-Date: 2017/11/27 10:41:01
-"""
 import tensorflow.compat.v1 as tf
 # import tensorflow as tf
 import config
 tf.disable_v2_behavior()
-
-
-
 with tf.name_scope("debug"):
     t = tf.constant(0) # debug variable
     tt = tf.constant(0) # debug variable

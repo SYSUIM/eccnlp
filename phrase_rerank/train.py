@@ -1,16 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-########################################################################
-#
-# Copyright (c) 2017 Wan Li. All Rights Reserved
-#
-########################################################################
-
-"""
-File: train.py
-Author: Wan Li
-Date: 2017/11/27 10:41:01
-"""
 import tensorflow.compat.v1 as tf
 # import tensorflow as tf
 import numpy as np
@@ -18,7 +7,8 @@ import lambdarank
 import mock
 import config
 tf.disable_v2_behavior()
-
+mylog = open(config.LOSS_PATH, mode = 'w',encoding='utf-8')
+# fpred = open(config.LOSS_PATH, "w")
 if config.USE_TOY_DATA == True:
     fin = open(config.TRAIN_DATA, "w")
     mock.generate_labeled_data_file(fin, 10000)
