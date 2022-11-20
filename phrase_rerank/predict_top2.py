@@ -9,14 +9,9 @@ import mock
 import config
 import csv
 import pandas as pd
+import logging
 tf.disable_v2_behavior()
-
-
-if config.USE_TOY_DATA == True:
-    fin = open(config.TEST_DATA, "w")
-    mock.generate_labeled_data_file(fin, 100)
-    fin.close()
-
+logging.basicConfig(filename="top2_v8.log", level=logging.INFO, format='%(asctime)s %(message)s')
 
 def get_reason_list_test():
     reason_list_test=[]
@@ -33,8 +28,6 @@ test_data, test_data_keys = mock.parse_labeled_data_file(fout)
 fout.close()
 
 test_data_key_count = len(test_data_keys)
-
-fpred = open(config.PREDICT_RESULT2, "w")
 
 def convert_np_data(query_doc_list):
     """Convert query doc list to numpy data of one retrival
@@ -60,7 +53,7 @@ def add_reason(o1,reason_id,reason_list_test):
         reason_id+=1
     return reason_id, o
 
-reason_id=test_data_key_count/3*7*5
+reason_id=int(test_data_key_count/3*7*5)
 saver = tf.train.Saver()
 all_reason_list=[]
 with tf.Session() as sess:
@@ -93,16 +86,16 @@ with tf.Session() as sess:
             result_label = "falsepositive"
             falsepositive_rank_count += 1
         for i in range(o1.shape[0]):
-            fpred.write("%s\t%.2f\t%.2f\t%s\t%s\n" % (result_label, o[i][0], O[i], qid, o[i][1]))
+            logging.info("%s\t%.2f\t%.2f\t%s\t%s" % (result_label, o[i][0], O[i], qid, o[i][1]))
        
-    fpred.write ("-- rank  top2 precision [%d/%d = %f] -- " % (
+    logging.info ("-- rank  top2 precision [%d/%d = %f] -- " % (
             total_queries_count - falsepositive_rank_count,
             total_queries_count,
             1.0 - 1.0 * falsepositive_rank_count / total_queries_count
     ))
+# 将排序后的文本写入result.csv
 b=np.array(all_reason_list)
 b=np.reshape(b,(-1,10)) 
-fpred.close()
 data=pd.read_csv('all_content.csv')
 list1=data.values.tolist()
 a=np.array(list1)
