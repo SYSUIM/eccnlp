@@ -3,12 +3,12 @@ import difflib
 import random
 import numpy as np
 import csv
+
 # mylog1 = open('data_v5.txt', mode = 'w',encoding='utf-8')
 mylog2 = open('labeled_v7.train', mode = 'w',encoding='utf-8')
 mylog3 = open('labeled_v7.test', mode = 'w',encoding='utf-8')
 mylog4 = open('test_reason.log', mode = 'w',encoding='utf-8')
 
-#定义两个原因文本的相似度，返回值范围（0，1]
 def string_similar(s1, s2):
     return difflib.SequenceMatcher(None, s1, s2).quick_ratio()
 
@@ -25,7 +25,7 @@ def list_cmp(x,y):
         return x[2]>y[2]
 
 #归一化
-def Normalization(a_list):
+def normalize(a_list):
     y=[]
     arr = np.asarray(a_list)
     for x in arr:
@@ -52,7 +52,7 @@ def generate_label(line_elem,all_rows):
         all_rows.append(line_elem[j])
     return all_rows
 
-#为每个UIE提取原因构造input格式
+#为每个UIE提取原因构造input格式的向量
 def form_input_vector(all_rows):
     y=[] 
     list_len=len(all_rows)
@@ -105,7 +105,7 @@ def form_input_data(alllist):
         if cott>=len_data*0.7:
             print(str1,file=mylog3)
 
-#将UIE提取的原因保存在est_reason.log中
+#将UIE提取的原因保存在test_reason.log中
 def write_reason(mylog4,data):
     cot=0
     for j in data["业绩归因"]:
@@ -152,8 +152,6 @@ with open("my_ie1018v2.log", "r", encoding="utf8") as f:
                 line_elem=[]
                 write_reason(mylog4,data)
                 for j in data["业绩归因"]:
-                    #
-                    # txt_data_line.append(j["text"])
                     elem=[]#当前quary 下每一个原因的特征向量
                     tmp=string_similar(j["text"],lab_txt) #管院标记原因与UIE提取原因的相似度
                     #elem 每一维的含义
@@ -163,9 +161,8 @@ with open("my_ie1018v2.log", "r", encoding="utf8") as f:
                     elem.extend([key_num, tmp, j["probability"], cot])                    
                     pro_cnt.append(cot)
                     line_elem.append(elem)
-                # txt_data.append(txt_data_line)
                 all_rows = generate_label(line_elem,all_rows) 
-    cnt = Normalization(pro_cnt)
+    cnt = normalize(pro_cnt)
     list_len=len(all_rows)
     all = form_input_vector(all_rows)
     alllist = generate_negative_sample_and_addin(all,list_len)
