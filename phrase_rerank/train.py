@@ -1,28 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-########################################################################
-#
-# Copyright (c) 2017 Wan Li. All Rights Reserved
-#
-########################################################################
-
-"""
-File: train.py
-Author: Wan Li
-Date: 2017/11/27 10:41:01
-"""
 import tensorflow.compat.v1 as tf
 # import tensorflow as tf
 import numpy as np
 import lambdarank
 import mock
 import config
+import logging
+logging.basicConfig(filename="losses_v8.log", level=logging.INFO, format='%(asctime)s %(message)s')
 tf.disable_v2_behavior()
-
-if config.USE_TOY_DATA == True:
-    fin = open(config.TRAIN_DATA, "w")
-    mock.generate_labeled_data_file(fin, 10000)
-    fin.close()
+# mylog = open(config.LOSS_PATH, mode = 'w',encoding='utf-8')
 
 fout = open(config.TRAIN_DATA, "r")
 train_data, train_data_keys = mock.parse_labeled_data_file(fout)
@@ -88,21 +75,22 @@ with tf.Session() as sess:
                            lambdarank.X:X,
                            lambdarank.Y:Y,
                        })
-            print ("-- epoch[%d] loss[%f] -- " % (
+            logging.info("-- epoch[%d] loss[%f] -- " % (
                 epoch,
                 loss,
             ))
 
         if epoch % 1000 == 0 and config.DEBUG_LOG == True:
-            print ("X:\n", debug_X)
-            print ("Y:\n", debug_Y)
-            print ("y:\n", debug_y)
-            print ("sigma_ij:\n", debug_sigma_ij)
-            print ("Sij:\n", debug_Sij)
-            print ("lambda_ij:\n", debug_lambda_ij)
-            print ("lambda_i:\n", debug_lambda_i)
-            print ("t:\n", debug_t)
-            print ("tt:\n", debug_tt)
-            print ("ttt:\n", debug_ttt)
+            print ("X:\n", debug_X, mylog)
+            print ("Y:\n", debug_Y, mylog)
+            print ("y:\n", debug_y, mylog)
+            print ("sigma_ij:\n", debug_sigma_ij, mylog)
+            print ("Sij:\n", debug_Sij, mylog)
+            print ("lambda_ij:\n", debug_lambda_ij, mylog)
+            print ("lambda_i:\n", debug_lambda_i, mylog)
+            print ("t:\n", debug_t, mylog)
+            print ("tt:\n", debug_tt, mylog)
+            print ("ttt:\n", debug_ttt, mylog)
     save_path = saver.save(sess, config.MODEL_PATH)
-    print("Model saved in file: %s" % save_path)
+    logging.info ("Model saved in file: %s" % save_path)
+# mylog.close()
