@@ -4,7 +4,6 @@ import math
 import jieba
 file_path ='cikuv2.log'
 mylog = open('word.log', mode = 'w',encoding='utf-8')
-
 def load_stop_words():
     """加载停用词"""
     with open("stop_words") as fr:
