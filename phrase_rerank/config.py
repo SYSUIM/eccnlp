@@ -8,7 +8,7 @@ LAMBDA_MEASURE_NDCG = "normalized_discounted_cumulative_gain"
 #LAMBDA_MEASURE_MAP = "mean_average_precision"
 #LAMBDA_MEASURE_ERR = "expected_reciprocal_rank"
 
-DEBUG_LOG = True
+DEBUG_LOG = False
 QUALITY_MEASURE = LAMBDA_MEASURE_NDCG
 USE_HIDDEN_LAYER = True
 USE_TOY_DATA = False
@@ -16,7 +16,7 @@ USE_TOY_DATA = False
 LAYER_WIDTH = 10
 FEATURE_NUM = 2
 LEARNING_RATE = 0.001
-MODEL_PATH = "./data_model_v7_lambdarank.ckpt"
+MODEL_PATH = "./data_model_v8_lambdarank.ckpt"
 TRAIN_DATA = "./labeled_v7.train"
 TEST_DATA = "./labeled_v7.test"
 LOSS_PATH ="./labeled_v7.loss"
