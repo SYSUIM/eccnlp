@@ -7,7 +7,7 @@ import pandas as pd
 
 parser = argparse.ArgumentParser(description='Data Processing')
 parser.add_argument('--data', type=str, required=True, help='path of raw data')
-parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
+parser.add_argument('--min_length', default=5, type=str, help='minimum length of cutted sentences(a number not less than 0)')
 parser.add_argument('--type', default='业绩归因', type=str, help='type of answer')
 parser.add_argument('--balance', type=str, required=True, help='up or down')
 parser.add_argument('--log', type=str, required=True, help='path of log file')
@@ -102,6 +102,8 @@ def get_dataset(data, args):
     test_list = []
     train_list1 = []
     train_list0 = []
+    val_list1 = []
+    val_list0 = []
 
     # 将text和label合并为一句
     text = list(sentence_dict.keys())
@@ -115,45 +117,62 @@ def get_dataset(data, args):
         if i % 5 ==0:
             test_list.append(sentences[i])
         if i % 5 ==1:
+            if sentences[i][-1] == '1':
+                val_list1.append(sentences[i])
+            else:
+                val_list0.append(sentences[i])
             val_list.append(sentences[i])
         else:
             if sentences[i][-1] =='1':
                 train_list1.append(sentences[i])
-            if sentences[i][-1] =='0':
+            else:
                 train_list0.append(sentences[i])
             train_list.append(sentences[i])
-    
-    train_num = len(train_list)
-    num_1 = len(train_list1)
-    num_0 = len(train_list0)            
+            
     train_balance_list = [i for i in train_list]
+    val_balance_list = [i for i in val_list]
+    train_num1 = len(train_list1)
+    val_num1 = len(val_list1)
+    train_num0 = len(train_list0)
+    val_num0 = len(val_list0)
     
-    # 对训练样本进行上采样
+    # 对训练集、测试集进行上采样
     if args.balance == 'up':
-        for i in range(train_num - num_1):
-            j = np.random.randint(0,num_1)
+        for i in range(train_num0):
+            j = np.random.randint(0,train_num1)
             train_balance_list.append(train_list1[j])
+        for i in range(val_num0):
+            val_balance_list.append(val_list1[j])
     
-    # 对训练样本进行下采样
+    # 对训练集、测试集进行下采样
     if args.balance == 'down':
-        remove_set = set()
-        for i in range(train_num - num_1):
-            j = np.random.randint(0,num_0)
-            while j in remove_set:
-                j = np.random.randint(0,num_0)
+        remove_train = set()
+        remove_val = set()
+        for i in range(train_num0):
+            j = np.random.randint(0,train_num0)
+            while j in remove_train:
+                j = np.random.randint(0,train_num0)
             train_balance_list.remove(train_list0[j])
-            remove_set.add(j)
-
-    random.shuffle(train_balance_list)    
-
+            remove_train.add(j)
+        for i in range(val_num0):
+            j = np.random.randint(0,val_num0)
+            while j in remove_val:
+                j = np.random.randint(0,val_num0)
+            val_balance_list.remove(val_list0[j])
+            remove_val.add(j)
+    
+    random.shuffle(train_balance_list)
+    random.shuffle(val_balance_list)
+        
     data_train=pd.DataFrame(train_balance_list)
-    data_val=pd.DataFrame(val_list)
+    data_val=pd.DataFrame(val_balance_list)
     data_test=pd.DataFrame(test_list)
 
     logging.info('问题类型：'+ args.type)
     logging.info('训练集数量：' + str(len(train_list)))
     logging.info('验证集数量：' + str(len(val_list)))
-    logging.info('测试集数量：' + str(len(test_list)))
     logging.info('训练集均衡后数量：' + str(len(train_balance_list)))
+    logging.info('验证集均衡后数量：' + str(len(val_balance_list)))
+    logging.info('测试集数量：' + str(len(test_list)))
 
     return sentence_dict, data_train, data_val, data_test
