@@ -18,6 +18,7 @@ import os
 from functools import partial
 
 import paddle
+from paddlenlp.datasets import MapDataset
 from paddle.utils.download import get_path_from_url
 from paddlenlp.datasets import load_dataset
 from paddlenlp.transformers import AutoTokenizer
@@ -30,7 +31,7 @@ from utils import set_seed, convert_example, reader, MODEL_MAP
 
 # import paddle.distributed as dist
 
-def do_train():
+def do_train(args, train_data, dev_data):
     paddle.set_device(args.device)
     rank = paddle.distributed.get_rank()
     if paddle.distributed.get_world_size() > 1:
@@ -49,14 +50,18 @@ def do_train():
     tokenizer = AutoTokenizer.from_pretrained(args.model_dir + args.model)
     model = UIE.from_pretrained(args.model_dir + args.model)
 
-    train_ds = load_dataset(reader,
-                            data_path=args.train_path,
-                            max_seq_len=args.max_seq_len,
-                            lazy=False)
-    dev_ds = load_dataset(reader,
-                          data_path=args.dev_path,
-                          max_seq_len=args.max_seq_len,
-                          lazy=False)
+    # train_ds = load_dataset(reader,
+    #                         data_path=args.train_path,
+    #                         max_seq_len=args.max_seq_len,
+    #                         lazy=False)
+    train_ds = MapDataset(train_data)
+    
+
+    # dev_ds = load_dataset(reader,
+    #                       data_path=args.dev_path,
+    #                       max_seq_len=args.max_seq_len,
+    #                       lazy=False)
+    dev_ds = MapDataset(dev_data)
 
     train_ds = train_ds.map(
         partial(convert_example,
@@ -154,27 +159,32 @@ def do_train():
                 tic_train = time.time()
 
 
-if __name__ == "__main__":
-    # yapf: disable
-    parser = argparse.ArgumentParser()
+# if __name__ == "__main__":
+#     # yapf: disable
+#     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--batch_size", default=16, type=int, help="Batch size per GPU/CPU for training.")
-    parser.add_argument("--learning_rate", default=1e-5, type=float, help="The initial learning rate for Adam.")
-    parser.add_argument("--train_path", default=None, type=str, help="The path of train set.")
-    parser.add_argument("--dev_path", default=None, type=str, help="The path of dev set.") 
-    parser.add_argument("--save_dir", default='./checkpoint', type=str, help="The output directory where the model checkpoints will be written.")
-    parser.add_argument("--max_seq_len", default=512, type=int, help="The maximum input sequence length. "
-        "Sequences longer than this will be split automatically.")
-    parser.add_argument("--num_epochs", default=100, type=int, help="Total number of training epochs to perform.")
-    parser.add_argument("--seed", default=1000, type=int, help="Random seed for initialization")
-    parser.add_argument("--logging_steps", default=10, type=int, help="The interval steps to logging.")
-    parser.add_argument("--valid_steps", default=100, type=int, help="The interval steps to evaluate model performance.")
-    parser.add_argument('--device', choices=['cpu', 'gpu'], default="gpu", help="Select which device to train model, defaults to gpu.")
-    parser.add_argument("--model", choices=["uie-base", "uie-tiny", "uie-medium", "uie-mini", "uie-micro", "uie-nano"], default="uie-base", type=str, help="Select the pretrained model for few-shot learning.")
-    parser.add_argument("--model_dir", default="/data/pzy2022/paddlepaddle/taskflow/", type=str, help="The pretrained model dir for few-shot learning.")
-    parser.add_argument("--init_from_ckpt", default=None, type=str, help="The path of model parameters for initialization.")
+#     parser.add_argument("--batch_size", default=16, type=int, help="Batch size per GPU/CPU for training.")
+#     parser.add_argument("--learning_rate", default=1e-5, type=float, help="The initial learning rate for Adam.")
+#     parser.add_argument("--train_path", default=None, type=str, help="The path of train set.")
+#     parser.add_argument("--dev_path", default=None, type=str, help="The path of dev set.") 
+#     parser.add_argument("--save_dir", default='./checkpoint', type=str, help="The output directory where the model checkpoints will be written.")
+#     parser.add_argument("--max_seq_len", default=512, type=int, help="The maximum input sequence length. "
+#         "Sequences longer than this will be split automatically.")
+#     parser.add_argument("--num_epochs", default=100, type=int, help="Total number of training epochs to perform.")
+#     parser.add_argument("--seed", default=1000, type=int, help="Random seed for initialization")
+#     parser.add_argument("--logging_steps", default=10, type=int, help="The interval steps to logging.")
+#     parser.add_argument("--valid_steps", default=100, type=int, help="The interval steps to evaluate model performance.")
+#     parser.add_argument('--device', choices=['cpu', 'gpu'], default="gpu", help="Select which device to train model, defaults to gpu.")
+#     parser.add_argument("--model", choices=["uie-base", "uie-tiny", "uie-medium", "uie-mini", "uie-micro", "uie-nano"], default="uie-base", type=str, help="Select the pretrained model for few-shot learning.")
+#     parser.add_argument("--model_dir", default="/data/pzy2022/paddlepaddle/taskflow/", type=str, help="The pretrained model dir for few-shot learning.")
+#     parser.add_argument("--init_from_ckpt", default=None, type=str, help="The path of model parameters for initialization.")
 
-    args = parser.parse_args()
-    # yapf: enable
+#     args = parser.parse_args()
+#     # yapf: enable
 
-    do_train()
+#     data = []
+#     with open('/data/pzy2022/project/test/test_data.txt', 'r') as f:
+#         for line in f:
+#             data.append(eval(line.strip('\n')))
+
+#     do_train(args)
