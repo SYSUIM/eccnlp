@@ -6,11 +6,11 @@ import pickle as pkl
 from tqdm import tqdm
 import time
 from datetime import timedelta
-import logging
 
 
-MAX_VOCAB_SIZE = 30000  # 词表长度限制
-UNK, PAD = '<UNK>', '<PAD>'  # 未知字，padding符号
+MAX_VOCAB_SIZE = 30000
+UNK, PAD = '<UNK>', '<PAD>'
+
 
 # 传入dataframe格式
 def build_vocab(data_df, tokenizer, max_size, min_freq):
@@ -33,6 +33,15 @@ def build_dataset(config, ues_word):
     vocab = build_vocab(config.train_df, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
     logging.info(f"Vocab size: {len(vocab)}")
 
+    def biGramHash(sequence, t, buckets):
+        t1 = sequence[t - 1] if t - 1 >= 0 else 0
+        return (t1 * 14918087) % buckets
+
+    def triGramHash(sequence, t, buckets):
+        t1 = sequence[t - 1] if t - 1 >= 0 else 0
+        t2 = sequence[t - 2] if t - 2 >= 0 else 0
+        return (t2 * 14918087 * 18408749 + t1 * 14918087) % buckets
+
     # 传入dataframe格式
     def load_dataset(data_df, pad_size=32):
         contents = []
@@ -50,7 +59,17 @@ def build_dataset(config, ues_word):
             # word to id
             for word in token:
                 words_line.append(vocab.get(word, vocab.get(UNK)))
-            contents.append((words_line, int(label), seq_len))
+
+            # fasttext ngram
+            buckets = config.n_gram_vocab
+            bigram = []
+            trigram = []
+            # ------ngram------
+            for i in range(pad_size):
+                bigram.append(biGramHash(words_line, i, buckets))
+                trigram.append(triGramHash(words_line, i, buckets))
+            # -----------------
+            contents.append((words_line, int(label), seq_len, bigram, trigram))
         return contents  # [([...], 0), ([...], 1), ...]
     train = load_dataset(config.train_df, config.pad_size)
     dev = load_dataset(config.dev_df, config.pad_size)
@@ -63,19 +82,24 @@ class DatasetIterater(object):
         self.batch_size = batch_size
         self.batches = batches
         self.n_batches = len(batches) // batch_size
-        self.residue = False  # 记录batch数量是否为整数
+        self.residue = False  # 记录batch数量是否为整数 
         if len(batches) % self.n_batches != 0:
             self.residue = True
         self.index = 0
         self.device = device
 
     def _to_tensor(self, datas):
+        # xx = [xxx[2] for xxx in datas]
+        # indexx = np.argsort(xx)[::-1]
+        # datas = np.array(datas)[indexx]
         x = torch.LongTensor([_[0] for _ in datas]).to(self.device)
         y = torch.LongTensor([_[1] for _ in datas]).to(self.device)
+        bigram = torch.LongTensor([_[3] for _ in datas]).to(self.device)
+        trigram = torch.LongTensor([_[4] for _ in datas]).to(self.device)
 
         # pad前的长度(超过pad_size的设为pad_size)
         seq_len = torch.LongTensor([_[2] for _ in datas]).to(self.device)
-        return (x, seq_len), y
+        return (x, seq_len, bigram, trigram), y
 
     def __next__(self):
         if self.residue and self.index == self.n_batches:
