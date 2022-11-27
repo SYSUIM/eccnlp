@@ -83,7 +83,7 @@ def train_dataset(data, args):
             for sentence in Acntet_cut:
                 #设置切分后最小长度
                 if len(sentence) > args.min_length:
-                    data_dict = {'content': '', 'raw_text':'', 'label': None, 'result_list': [{"text": '', "start":None , "end":None}], 'prompt': ''}
+                    data_dict = {'content': '', 'raw_text':'', 'label': 0, 'result_list': [{"text": '', "start":None , "end":None}], 'prompt': ''}
                     data_dict['content'] = sentence
                     data_dict['raw_text'] = row['Acntet']
                     result_dict = {}
