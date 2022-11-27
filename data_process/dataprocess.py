@@ -103,7 +103,7 @@ def train_dataset(data, args):
                         data_dict['label'] = 0
                     data_dict['result_list'] = [result_dict]
                     data_dict['prompt'] = args.type
-                dataset_list.append(data_dict)
+                    dataset_list.append(data_dict)
     # logging.info((dataset_list))
     return dataset_list
 
