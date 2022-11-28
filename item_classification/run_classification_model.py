@@ -2,28 +2,33 @@
 import time
 import torch
 import numpy as np
-from train_eval import train, init_network
+from item_classification.train_eval import *
 from importlib import import_module
-# from preprocess_re import get_dataset
 import argparse
 import pandas as pd
 import logging
+import os
 
-parser = argparse.ArgumentParser(description='Chinese Text Classification')
-parser.add_argument('--model', type=str, required=True, help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
-parser.add_argument('--embedding', default='pre_trained', type=str, help='random or pre_trained')
-parser.add_argument('--word', default=False, type=bool, help='True for word, False for char')
-parser.add_argument('--num_epochs', default=20, type=int, help='Total number of training epochs to perform.')
-parser.add_argument('--require_improvement', default=2000, type=int, help='Stop the train if the improvement is not required.')
-parser.add_argument('--n_vocab', default=0, type=int, help='Size of the vocab.')
-parser.add_argument('--batch_size', default=128, type=int, help='Batch size per GPU/CPU for training.')
-parser.add_argument('--pad_size', default=32, type=int, help='Size of the pad.')
-parser.add_argument('--learning_rate', default=1e-3, type=float, help='The initial learning rate for Adam.')
-args = parser.parse_args()
+# parser = argparse.ArgumentParser(description='Chinese Text Classification')
+# parser.add_argument('--data', type=str, required=True, help='path of raw data')
+# parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
+# parser.add_argument('--type', default='业绩归因', type=str, help='type of answer')
+# parser.add_argument('--balance', default='none',type=str, required=True, help='up or down or none')
+# parser.add_argument('--log', type=str, required=True, help='path of log file')
+# parser.add_argument('--model', type=str, required=True, help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
+# parser.add_argument('--embedding', default='pre_trained', type=str, help='random or pre_trained')
+# parser.add_argument('--word', default=False, type=bool, help='True for word, False for char')
+# parser.add_argument('--num_epochs', default=20, type=int, help='Total number of training epochs to perform.')
+# parser.add_argument('--require_improvement', default=2000, type=int, help='Stop the train if the improvement is not required.')
+# parser.add_argument('--n_vocab', default=0, type=int, help='Size of the vocab.')
+# parser.add_argument('--batch_size', default=128, type=int, help='Batch size per GPU/CPU for training.')
+# parser.add_argument('--pad_size', default=32, type=int, help='Size of the pad.')
+# parser.add_argument('--learning_rate', default=1e-3, type=float, help='The initial learning rate for Adam.')
+# args = parser.parse_args()
 
-def run_classification_model(train_df, dev_df, test_df):
-    log_filename = '../data/log/' + args.model + time.strftime('%m.%d_%H.%M', time.localtime()) + '.log'
-    logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(message)s')
+def run_classification_model(train_list, dev_list, test_list, args):
+    # log_filename = './data/log/' + args.model + time.strftime('%m.%d_%H.%M', time.localtime()) + '.log'
+    # logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(message)s')
 
     # 回答文本:pre_trained, 随机初始化:random
     embedding = 'pre_trained'
@@ -33,15 +38,15 @@ def run_classification_model(train_df, dev_df, test_df):
     if model_name == 'Transformer':
         args.learning_rate = 5e-4
     if model_name == 'FastText':
-        from utils_fasttext import build_dataset, build_iterator, get_time_dif, get_utils
+        from item_classification.utils_fasttext import build_dataset, build_iterator, get_time_dif, get_utils
         embedding = 'random'
     else:
-        from utils import build_dataset, build_iterator, get_time_dif, get_utils
+        from item_classification.utils import build_dataset, build_iterator, get_time_dif, get_utils
 
-    embeddings_pretrained = get_utils(train_df)
+    embeddings_pretrained = get_utils(train_list)
 
-    x = import_module('model.' + model_name)
-    config = x.Config(train_df, dev_df, test_df, embeddings_pretrained, embedding, args)
+    x = import_module('item_classification.model.' + model_name)
+    config = x.Config(train_list, dev_list, test_list, embeddings_pretrained, embedding, args)
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed_all(1)
@@ -64,10 +69,22 @@ def run_classification_model(train_df, dev_df, test_df):
     logging.info(model.parameters)
     train(config, model, train_iter, dev_iter, test_iter)
 
-# 测试run_classification_model方法
-if __name__ == '__main__':
-    # train_df, dev_df, test_df = get_dataset(data, args)
-    train_df = pd.read_csv('../data/dataset/train.txt', sep='\t', names=['content', 'label'], encoding='utf-8')
-    dev_df = pd.read_csv('../data/dataset/validation.txt', sep='\t', names=['content', 'label'], encoding='utf-8')
-    test_df = pd.read_csv('../data/dataset/test.txt', sep='\t', names=['content', 'label'], encoding='utf-8')
-    run_classification_model(train_df, dev_df, test_df)
+    # predict
+    predict_data = [i for i in test_data]
+    predict_iter = build_iterator(predict_data, config)
+
+    def predict(config, model, predict_iter):
+        model.load_state_dict(torch.load(config.save_path))
+        model.eval()
+        predict_all = np.array([], dtype=int)
+        with torch.no_grad():
+            for texts, labels in predict_iter:
+                outputs = model(texts)
+                predic = torch.max(outputs.data, 1)[1].cpu().numpy()
+                predict_all = np.append(predict_all, predic)
+
+        return predict_all
+    
+    predict_all = predict(config, model, predict_iter)
+
+    return predict_all
