@@ -13,10 +13,10 @@ UNK, PAD = '<UNK>', '<PAD>'
 
 
 # 传入dataframe格式
-def build_vocab(data_df, tokenizer, max_size, min_freq):
+def build_vocab(data_list, tokenizer, max_size, min_freq):
     vocab_dic = {}
-    for i in tqdm(range(len(data_df))):
-        content = data_df.iloc[i, 0]
+    for i in tqdm(range(len(data_list))):
+        content = data_list[i][0].strip()
         for word in tokenizer(content):
             vocab_dic[word] = vocab_dic.get(word, 0) + 1
     vocab_list = sorted([_ for _ in vocab_dic.items() if _[1] >= min_freq], key=lambda x: x[1], reverse=True)[:max_size]
@@ -30,7 +30,7 @@ def build_dataset(config, ues_word):
         tokenizer = lambda x: x.split(' ')  # 以空格隔开，word-level
     else:
         tokenizer = lambda x: [y for y in x]  # char-level
-    vocab = build_vocab(config.train_df, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
+    vocab = build_vocab(config.train_list, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
     logging.info(f"Vocab size: {len(vocab)}")
 
     def biGramHash(sequence, t, buckets):
@@ -42,11 +42,11 @@ def build_dataset(config, ues_word):
         t2 = sequence[t - 2] if t - 2 >= 0 else 0
         return (t2 * 14918087 * 18408749 + t1 * 14918087) % buckets
 
-    # 传入dataframe格式
-    def load_dataset(data_df, pad_size=32):
+    # 传入list格式
+    def load_dataset(data_list, pad_size=32):
         contents = []
-        for i in tqdm(range(len(data_df))):
-            content, label = data_df.iloc[i, 0:2]
+        for i in tqdm(range(len(data_list))):
+            content, label = data_list[i]
             words_line = []
             token = tokenizer(content)
             seq_len = len(token)
@@ -71,9 +71,9 @@ def build_dataset(config, ues_word):
             # -----------------
             contents.append((words_line, int(label), seq_len, bigram, trigram))
         return contents  # [([...], 0), ([...], 1), ...]
-    train = load_dataset(config.train_df, config.pad_size)
-    dev = load_dataset(config.dev_df, config.pad_size)
-    test = load_dataset(config.test_df, config.pad_size)
+    train = load_dataset(config.train_list, config.pad_size)
+    dev = load_dataset(config.dev_list, config.pad_size)
+    test = load_dataset(config.test_list, config.pad_size)
     return vocab, train, dev, test
 
 
@@ -139,13 +139,13 @@ def get_time_dif(start_time):
     return timedelta(seconds=int(round(time_dif)))
 
 
-def get_utils(train_df):
+def get_utils(train_list):
     '''提取预训练词向量'''
     pretrain_dir = "../data/sgns.financial.char"
     emb_dim = 300
     # tokenizer = lambda x: x.split(' ')  # 以词为单位构建词表(数据集中词之间以空格隔开)
     tokenizer = lambda x: [y for y in x]  # 以字为单位构建词表
-    word_to_id = build_vocab(train_df, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
+    word_to_id = build_vocab(train_list, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
 
     embeddings_pretrained = np.random.rand(len(word_to_id), emb_dim)
     with open(pretrain_dir, "r", encoding='UTF-8') as f:
