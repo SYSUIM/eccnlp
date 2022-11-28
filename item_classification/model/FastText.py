@@ -10,14 +10,14 @@ now_time = time.strftime('%m.%d_%H.%M', time.localtime())
 class Config(object):
 
     """配置参数"""
-    def __init__(self, train_df, dev_df, test_df, embeddings_pretrained, embedding, args):
+    def __init__(self, train_list, dev_list, test_list, embeddings_pretrained, embedding, args):
         self.model_name = 'FastText'
-        self.train_df = train_df                                                        # 训练集
-        self.dev_df = dev_df                                                            # 验证集
-        self.test_df = test_df                                                          # 测试集
+        self.train_list = train_list                                                        # 训练集
+        self.dev_list = dev_list                                                            # 验证集
+        self.test_list = test_list                                                          # 测试集
         self.class_list = [x.strip() for x in open(
-            '../data/class.txt', encoding='utf-8').readlines()]                         # 类别名单
-        self.save_path = '../data/save_model/' + self.model_name + now_time + '.ckpt'   # 模型训练结果
+            './data/class.txt', encoding='utf-8').readlines()]                         # 类别名单
+        self.save_path = './data/save_model/' + self.model_name + now_time + '.ckpt'   # 模型训练结果
         self.embedding_pretrained = torch.tensor(
             embeddings_pretrained.astype('float32'))\
             if embedding != 'random' else None                                          # 预训练词向量
