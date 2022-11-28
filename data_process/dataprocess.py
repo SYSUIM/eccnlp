@@ -4,14 +4,15 @@ import logging
 import argparse
 import numpy as np
 import pandas as pd
+import time
 
-parser = argparse.ArgumentParser(description='Data Processing')
-parser.add_argument('--data', type=str, required=True, help='path of raw data')
-parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
-parser.add_argument('--type', default='业绩归因', type=str, help='type of answer')
-parser.add_argument('--balance', default='none',type=str, required=True, help='up or down or none')
-# parser.add_argument('--predict', type=str, required=True, help='path of predict data')
-args = parser.parse_args()
+# parser = argparse.ArgumentParser(description='Data Processing')
+# parser.add_argument('--data', type=str, required=True, help='path of raw data')
+# parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
+# parser.add_argument('--type', default='业绩归因', type=str, help='type of answer')
+# parser.add_argument('--balance', default='none',type=str, required=True, help='up or down or none')
+# parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
+# args = parser.parse_args()
 
 def re_pattern(args):
     Codesdf = pd.read_excel(args.data)
@@ -21,8 +22,8 @@ def re_pattern(args):
     Codesdf.loc[(Codesdf['业绩归因问题类型'] != "业绩归因") & (Codesdf['业绩归因问题类型'] !=
                                                "回答特定因素对业绩是否有影响") & (Codesdf['业绩归因问题类型'] != "未来发展趋势"), '是否为业绩归因回答'] = 0
     Codesdf.loc[(Codesdf['原因归属在回答文本中'] == 0) & (Codesdf['是否为业绩归因回答'] == 1), '是否为业绩归因回答'] = 0
-    #print("查看业绩归因样本情况\n", Codesdf['是否为业绩归因回答'].value_counts(),"\n")
-    logging.basicConfig(filename='./log/preprocess.log', level=logging.INFO, format='%(asctime)s %(message)s')
+    log_filename = './data/log/' + args.model + time.strftime('%m.%d_%H.%M', time.localtime()) + '.log'
+    logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(message)s')
     logging.info(("查看业绩归因样本情况",(Codesdf['是否为业绩归因回答'].value_counts())))
 
 
@@ -104,13 +105,12 @@ def train_dataset(data, args):
                     data_dict['result_list'] = [result_dict]
                     data_dict['prompt'] = args.type
                     dataset_list.append(data_dict)
-    # logging.info((dataset_list))
     return dataset_list
 
 
 # 模型预测数据
 def predict_dataset(args):
-    predict_data = pd.read_excel(args.predict)
+    predict_data = pd.read_excel(args.predict_data)
     dataset_list = []
     for index, row in predict_data.iterrows():
         # 去除正则过滤的非业绩归因回答
@@ -120,11 +120,12 @@ def predict_dataset(args):
             for sentence in Acntet_cut:
                 #设置切分后最小长度
                 if len(sentence) > args.min_length:
-                    data_dict = {'content': '', 'raw_text':'', 'label': None, 'result_list': [{"text": '', "start":None , "end":None}], 'prompt': ''}
+                    data_dict = {'content': '', 'raw_text':'', 'label': 0, 'result_list': [{"text": '', "start":None , "end":None}], 'prompt': ''}
                     data_dict['content'] = sentence
                     data_dict['raw_text'] = row['Acntet']
                 dataset_list.append(data_dict)
     return dataset_list
+
 
 # 生成分类模型数据集
 def classification_dataset(dataset,args):
@@ -135,22 +136,27 @@ def classification_dataset(dataset,args):
     train_list1 = []
     val_list0 = []
     val_list1 = []
+    train_dict = []
+    val_dict = []
+    test_dict = []
 
 
     #分割数据集(1:1:3)
     for i in range(len(dataset)):
+        content, label = dataset[i]['content'], dataset[i]['label']
+        content = re.sub("[^\u4e00-\u9fa5]", "", str(content))
         if i % 5 == 0:
-            content, label = dataset[i]['content'], dataset[i]['label']
+            test_dict.append(dataset[i])
             test_list.append(list((content, label)))
         elif i % 5 == 1:
-            content, label = dataset[i]['content'], dataset[i]['label']
+            val_dict.append(dataset[i])
             val_list.append(list((content, label)))
             if label == 0:
                 val_list0.append(list((content, label)))
             else:
                 val_list1.append(list((content, label)))
         else:
-            content, label = dataset[i]['content'], dataset[i]['label']
+            train_dict.append(dataset[i])
             train_list.append(list((content, label)))
             if label == 0:
                 train_list0.append(list((content, label)))
@@ -160,52 +166,52 @@ def classification_dataset(dataset,args):
     # 获取训练集、验证集样本数
     train_num = len(train_list)
     val_num = len(val_list)
-    train_num1 = len(train_list1)   
+    train_num1 = len(train_list1)
+    train_num0 = len(train_list0)   
     val_num1 = len(val_list1)
-
-
-    train_balance_list = []
-    val_balance_list = []
+    val_num0 = len(val_list0)
+    
     # 对训练集、测试集进行上采样
     def upsampling():
-        for i in range(train_num - train_num1):
+        random.seed(None)
+        for i in range(train_num0):
             j = np.random.randint(0, train_num1)
             train_balance_list.append(train_list1[j])
-        for i in range(val_num - val_num1):
+        for i in range(val_num0):
             j = np.random.randint(0, val_num1)
             val_balance_list.append(val_list1[j])
+        random.seed(10)
         random.shuffle(train_balance_list)
         random.shuffle(val_balance_list)
 
     # 对训练集、测试集进行下采样
     def downsampling():
-        train_num_list = np.random.randint(train_num-train_num1, size=train_num1)
-        val_num_list = np.random.randint(val_num-val_num1, size=val_num1)
+        random.seed(10)
+        train_num_list = random.sample(range(0, train_num0), train_num1)
+        val_num_list = random.sample(range(0, val_num0), val_num1)
         for i in range(train_num1):
             train_balance_list.append(train_list0[train_num_list[i]])
         for i in range(val_num1):
-            train_balance_list.append(train_list0[val_num_list[i]])
+            val_balance_list.append(val_list0[val_num_list[i]])
+        random.seed(10)
         random.shuffle(train_balance_list)
-        random.shuffle(val_balance_list)      
-
+        random.shuffle(val_balance_list)        
 
     logging.info('问题类型：'+ args.type)
     logging.info('训练集数量：' + str(len(train_list)))
     logging.info('验证集数量：' + str(len(val_list)))
     logging.info('测试集数量：' + str(len(test_list)))
 
-    train_df = pd.DataFrame(train_list)
-    val_df = pd.DataFrame(val_list)
-    test_df = pd.DataFrame(test_list)
-
     if args.balance != 'none':
         if args.balance == 'up':
+            train_balance_list = [i for i in train_list0]
+            val_balance_list = [i for i in val_list0]
             upsampling()
         if args.balance == 'down':
+            train_balance_list = [i for i in train_list1]
+            val_balance_list = [i for i in val_list1]
             downsampling()
         logging.info('训练集均衡后数量：' + str(len(train_balance_list)))
         logging.info('验证集均衡后数量：' + str(len(val_balance_list)))
-        train_df = pd.DataFrame(train_balance_list)
-        val_df = pd.DataFrame(val_balance_list)
-    
-    return train_df, val_df, test_df
+
+    return train_balance_list, val_balance_list, test_list, train_dict, val_dict, test_dict
