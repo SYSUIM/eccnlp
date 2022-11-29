@@ -5,15 +5,17 @@ import argparse
 import numpy as np
 import pandas as pd
 import time
+import jieba
 
-# parser = argparse.ArgumentParser(description='Data Processing')
-# parser.add_argument('--data', type=str, required=True, help='path of raw data')
-# parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
-# parser.add_argument('--type', default='业绩归因', type=str, help='type of answer')
-# parser.add_argument('--balance', default='none',type=str, required=True, help='up or down or none')
-# parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
-# args = parser.parse_args()
+parser = argparse.ArgumentParser(description='Data Processing')
+parser.add_argument('--data', type=str, required=True, help='path of raw data')
+parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
+parser.add_argument('--balance', default='none',type=str, required=True, help='up or down or none')
+parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
+args = parser.parse_args()
 
+
+'''正则过滤部分非业绩归因问题'''
 def re_pattern(args):
     Codesdf = pd.read_excel(args.data)
 
@@ -72,16 +74,17 @@ def re_pattern(args):
     Codesdf=Codesdf.drop(columns=['Length'])
     return Codesdf
 
-# 模型训练数据
+
+'''模型训练数据'''
 def train_dataset(data, args):
     dataset_list = []
-    sentence_set = set()
     for index, row in data.iterrows():
         # 去除正则过滤的非业绩归因回答
         if row['Predict_非业绩归因'] == 0:
             split_rule = '[。？！]'
             Acntet_cut = re.split(split_rule,row['Acntet'])
             for sentence in Acntet_cut:
+                sentence = re.sub('[\n,?]','', str(sentence))
                 #设置切分后最小长度
                 if len(sentence) > args.min_length:
                     data_dict = {'content': '', 'raw_text':'', 'label': 0, 'result_list': [{"text": '', "start":None , "end":None}], 'prompt': ''}
@@ -89,7 +92,8 @@ def train_dataset(data, args):
                     data_dict['raw_text'] = row['Acntet']
                     result_dict = {}
                     #设置问题类型
-                    if row['业绩归因问题类型'] == args.type:
+                    if row['业绩归因问题类型'] == '业绩归因':
+                    # if row['业绩归因问题类型'] == '业绩归因' or row['业绩归因问题类型'] == '回答特定因素对业绩是否有影响' or row['业绩归因问题类型'] == '未来发展趋势':
                         for i in range(1,11):
                             if str(row['原因归属' + str(i)]) is None:
                                 continue
@@ -98,17 +102,13 @@ def train_dataset(data, args):
                                 result_dict['text'] = str(row['原因归属' + str(i)])
                                 result_dict['start'] = sentence.index(str(row['原因归属' + str(i)]))
                                 result_dict['end'] = result_dict['start'] + len(row['原因归属' + str(i)])
-                                sentence_set.add(sentence)
-
-                    if sentence not in sentence_set:
-                        data_dict['label'] = 0
                     data_dict['result_list'] = [result_dict]
                     data_dict['prompt'] = args.type
                     dataset_list.append(data_dict)
     return dataset_list
 
 
-# 模型预测数据
+'''模型预测数据'''
 def predict_dataset(args):
     predict_data = pd.read_excel(args.predict_data)
     dataset_list = []
@@ -118,6 +118,7 @@ def predict_dataset(args):
             split_rule = '[。？！]'
             Acntet_cut = re.split(split_rule,row['Acntet'])
             for sentence in Acntet_cut:
+                sentence = re.sub('[\n,?]','', str(sentence))
                 #设置切分后最小长度
                 if len(sentence) > args.min_length:
                     data_dict = {'content': '', 'raw_text':'', 'label': 0, 'result_list': [{"text": '', "start":None , "end":None}], 'prompt': ''}
@@ -127,7 +128,7 @@ def predict_dataset(args):
     return dataset_list
 
 
-# 生成分类模型数据集
+'''生成分类模型数据集'''
 def classification_dataset(dataset,args):
     train_list = []
     val_list = []
@@ -215,3 +216,28 @@ def classification_dataset(dataset,args):
         logging.info('验证集均衡后数量：' + str(len(val_balance_list)))
 
     return train_balance_list, val_balance_list, test_list, train_dict, val_dict, test_dict
+
+
+'''传入dataset_list构建词库''' 
+def build_thesaurus(dataset):
+    '''加载停用词'''
+    with open('stop_words') as fr:
+        stop_words = set([word.strip() for word in fr])
+
+    all_label_pro = [] # 保存标注的原因
+    for i in range(len(dataset)):
+        if dataset[i]['label'] == 1:
+            line = dataset[i]
+            data = line['result_list'][0]['text']
+            if data != '':
+                all_label_pro.append(data)
+    
+    # 将标注的原因归属分割成词或词语
+    mylog = open('.log/word_v2.log',mode='w',encoding='utf-8')
+    words = []
+    for i in range(len(all_label_pro)):
+        all_label_pro[i] = jieba.lcut(str(all_label_pro[i]))
+        words += all_label_pro[i]
+    for i in words:
+        if i not in stop_words:
+            logging.info(i,file=mylog)
