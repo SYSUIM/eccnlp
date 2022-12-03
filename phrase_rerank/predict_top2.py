@@ -5,25 +5,35 @@ import tensorflow.compat.v1 as tf
 # import tensorflow as tf
 import numpy as np
 import lambdarank
-import mock
+import generate_labeled_data_v2
 import config
 import csv
 import pandas as pd
 import logging
+import argparse
 tf.disable_v2_behavior()
+
 logging.basicConfig(filename="top2_v8.log", level=logging.INFO, format='%(asctime)s %(message)s')
+parser = argparse.ArgumentParser(description='predict')
+parser.add_argument('--MODEL_PATH', type=str, default='./data_model_v8_lambdarank.ckpt',help='模型保存路径')
+parser.add_argument('--test_data_path', type=str, default='2022-12-03_test.log',help='测试集路径')
+parser.add_argument('--result_path', type=str, default='result1203.csv',help='结果文件路径')
+parser.add_argument('--reason_path', type=str, default='2022-12-03_reason_of_test.log',help='测试集原因路径')
+
+args = parser.parse_args()
+
 
 def get_reason_list_test():
     reason_list_test=[]
-    with open("test_reason.log", "r", encoding="utf8") as f1:
+    with open(args.reason_path, "r", encoding="utf8") as f1:
         reasons = f1.readlines()
         for i in reasons:
             reason_list_test.append(i.strip('\n'))
     f1.close()
     return reason_list_test
 
-fout = open(config.TEST_DATA, "r")
-test_data, test_data_keys = mock.parse_labeled_data_file(fout)
+fout = open(args.test_data_path, "r")
+test_data, test_data_keys = generate_labeled_data_v2.parse_labeled_data_file(fout)
 
 fout.close()
 
@@ -59,8 +69,8 @@ all_reason_list=[]
 with tf.Session() as sess:
     init = tf.global_variables_initializer()
     sess.run(init)
-    saver.restore(sess, config.MODEL_PATH)
-    print("Model restored from file: %s" % config.MODEL_PATH)
+    saver.restore(sess, args.MODEL_PATH)
+    print("Model restored from file: %s" % args.MODEL_PATH)
     total_pairs_count = 0
     falsepositive_pairs_count = 0
     total_queries_count = test_data_key_count
@@ -100,7 +110,7 @@ data=pd.read_csv('all_content.csv')
 list1=data.values.tolist()
 a=np.array(list1)
 c=np.hstack((a,b))
-fd = open('result.csv','w',encoding="utf-8-sig")
+fd = open(args.result_path,'w',encoding="utf-8-sig")
 writer = csv.writer(fd)
 header=['content','label','top1_score','top1_reason','top2_score','top2_reason','top3_score','top3_reason','top4_score','top4_reason','top5_score','top5_reason']
 writer.writerow(header)
