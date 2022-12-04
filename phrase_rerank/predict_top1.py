@@ -7,21 +7,16 @@ import numpy as np
 import lambdarank
 import mock
 import config
+import logging
 tf.disable_v2_behavior()
+logging.basicConfig(filename="top1_v7.log", level=logging.INFO, format='%(asctime)s %(message)s')
 
-
-if config.USE_TOY_DATA == True:
-    fin = open(config.TEST_DATA, "w")
-    mock.generate_labeled_data_file(fin, 100)
-    fin.close()
 
 fout = open(config.TEST_DATA, "r")
 test_data, test_data_keys = mock.parse_labeled_data_file(fout)
 fout.close()
 
 test_data_key_count = len(test_data_keys)
-
-fpred = open(config.PREDICT_RESULT, "w")
 
 def convert_np_data(query_doc_list):
     """Convert query doc list to numpy data of one retrival
@@ -59,7 +54,13 @@ with tf.Session() as sess:
             X.append(query_doc_vec[1:])
             Y.append(query_doc_vec[0:1])
         X, Y = np.array(X), np.array(Y)
+        print("X:",X)
+        print("Y:",Y)
+        print(lambdarank.Y, lambdarank.y)
         O, o = sess.run([lambdarank.Y, lambdarank.y], feed_dict={lambdarank.X:X, lambdarank.Y:Y})
+        # O, o = sess.run([lambdarank.Y], feed_dict={lambdarank.X:X})
+        print("O:",O)
+        print("o:",o)
         true_label_index = 0
         positive_label_index = 0
         max_true_value = -10000.0
@@ -76,12 +77,10 @@ with tf.Session() as sess:
             result_label = "falsepositive"
             falsepositive_rank_count += 1
         for i in range(o.shape[0]):
-            fpred.write("%s\t%.2f\t%.2f\t%s\n" % (result_label, o[i], O[i], qid))
+            logging.info("%s\t%.2f\t%.2f\t%s" % (result_label, o[i], O[i], qid))
 
-    fpred.write ("-- rank top1 precision [%d/%d = %f] -- " % (
+    logging.info ("-- rank top1 precision [%d/%d = %f] -- " % (
             total_queries_count - falsepositive_rank_count,
             total_queries_count,
             1.0 - 1.0 * falsepositive_rank_count / total_queries_count
     ))
-
-fpred.close()

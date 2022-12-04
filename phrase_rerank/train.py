@@ -1,18 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import tensorflow.compat.v1 as tf
-# import tensorflow as tf
 import numpy as np
 import lambdarank
-import mock
-import config
+import generate_labeled_data_v2
 import logging
-logging.basicConfig(filename="losses_v8.log", level=logging.INFO, format='%(asctime)s %(message)s')
+import argparse
 tf.disable_v2_behavior()
-# mylog = open(config.LOSS_PATH, mode = 'w',encoding='utf-8')
+logging.basicConfig(filename="losses_v8.log", level=logging.INFO, format='%(asctime)s %(message)s')
 
-fout = open(config.TRAIN_DATA, "r")
-train_data, train_data_keys = mock.parse_labeled_data_file(fout)
+
+parser = argparse.ArgumentParser(description='train')
+parser.add_argument('--DEBUG_LOG', type=bool, default=False, help='是否输出DEBUG')
+parser.add_argument('--MODEL_PATH', type=str, default='./data_model_v8_lambdarank.ckpt',help='模型保存路径')
+parser.add_argument('--train_data_path', type=str, default='2022-12-03_train.log',help='训练集路径')
+args = parser.parse_args()
+
+fout = open(args.train_data_path, "r")
+train_data, train_data_keys = generate_labeled_data_v2.parse_labeled_data_file(fout)
 fout.close()
 
 train_data_key_count = len(train_data_keys)
@@ -80,7 +85,7 @@ with tf.Session() as sess:
                 loss,
             ))
 
-        if epoch % 1000 == 0 and config.DEBUG_LOG == True:
+        if epoch % 1000 == 0 and args.DEBUG_LOG == True:
             print ("X:\n", debug_X, mylog)
             print ("Y:\n", debug_Y, mylog)
             print ("y:\n", debug_y, mylog)
@@ -91,6 +96,6 @@ with tf.Session() as sess:
             print ("t:\n", debug_t, mylog)
             print ("tt:\n", debug_tt, mylog)
             print ("ttt:\n", debug_ttt, mylog)
-    save_path = saver.save(sess, config.MODEL_PATH)
+    save_path = saver.save(sess, args.MODEL_PATH)
     logging.info ("Model saved in file: %s" % save_path)
-# mylog.close()
+
