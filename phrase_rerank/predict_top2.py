@@ -14,13 +14,13 @@ import argparse
 tf.disable_v2_behavior()
 
 logging.basicConfig(filename="top2_v8.log", level=logging.INFO, format='%(asctime)s %(message)s')
-parser = argparse.ArgumentParser(description='predict')
-parser.add_argument('--MODEL_PATH', type=str, default='./data_model_v8_lambdarank.ckpt',help='模型保存路径')
-parser.add_argument('--test_data_path', type=str, default='2022-12-03_test.log',help='测试集路径')
-parser.add_argument('--result_path', type=str, default='result1203.csv',help='结果文件路径')
-parser.add_argument('--reason_path', type=str, default='2022-12-03_reason_of_test.log',help='测试集原因路径')
+# parser = argparse.ArgumentParser(description='predict')
+# parser.add_argument('--MODEL_PATH', type=str, default='./data_model_v8_lambdarank.ckpt',help='模型保存路径')
+# parser.add_argument('--test_data_path', type=str, default='2022-12-03_test.log',help='测试集路径')
+# parser.add_argument('--result_path', type=str, default='result1203.csv',help='结果文件路径')
+# parser.add_argument('--reason_path', type=str, default='2022-12-03_reason_of_test.log',help='测试集原因路径')
 
-args = parser.parse_args()
+# args = parser.parse_args()
 
 
 def get_reason_list_test():
