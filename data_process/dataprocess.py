@@ -7,12 +7,12 @@ import pandas as pd
 import time
 import jieba
 
-parser = argparse.ArgumentParser(description='Data Processing')
-parser.add_argument('--data', type=str, required=True, help='path of raw data')
-parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
-parser.add_argument('--balance', default='none',type=str, required=True, help='up or down or none')
-parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
-args = parser.parse_args()
+# parser = argparse.ArgumentParser(description='Data Processing')
+# parser.add_argument('--data', type=str, required=True, help='path of raw data')
+# parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
+# parser.add_argument('--balance', default='none',type=str, required=True, help='up or down or none')
+# parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
+# args = parser.parse_args()
 
 
 '''正则过滤部分非业绩归因问题'''
@@ -221,7 +221,7 @@ def classification_dataset(dataset,args):
 '''传入dataset_list构建词库''' 
 def build_thesaurus(dataset):
     '''加载停用词'''
-    with open('stop_words') as fr:
+    with open('stop_words.txt') as fr:
         stop_words = set([word.strip() for word in fr])
 
     all_label_pro = [] # 保存标注的原因

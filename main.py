@@ -11,7 +11,6 @@ here are parameters for Chinese Text Classification
 '''
 parser.add_argument('--data', type=str, required=True, help='path of raw data')
 parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
-parser.add_argument('--type', default='业绩归因', type=str, help='type of answer')
 parser.add_argument('--balance', default='none',type=str, required=True, help='up or down or none')
 # parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
 parser.add_argument('--model', type=str, required=True, help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
