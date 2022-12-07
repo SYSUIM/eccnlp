@@ -103,7 +103,7 @@ def train_dataset(data, args):
                                 result_dict['start'] = sentence.index(str(row['原因归属' + str(i)]))
                                 result_dict['end'] = result_dict['start'] + len(row['原因归属' + str(i)])
                     data_dict['result_list'] = [result_dict]
-                    data_dict['prompt'] = args.type
+                    data_dict['prompt'] = row['业绩归因问题类型']
                     dataset_list.append(data_dict)
     return dataset_list
 
@@ -198,7 +198,7 @@ def classification_dataset(dataset,args):
         random.shuffle(train_balance_list)
         random.shuffle(val_balance_list)        
 
-    logging.info('问题类型：'+ args.type)
+    # logging.info('问题类型：'+ args.type)
     logging.info('训练集数量：' + str(len(train_list)))
     logging.info('验证集数量：' + str(len(val_list)))
     logging.info('测试集数量：' + str(len(test_list)))
