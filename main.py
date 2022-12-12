@@ -2,7 +2,7 @@ import argparse
 import config
 
 from data_process.dataprocess import re_pattern, train_dataset, predict_dataset, classification_dataset
-# from item_classification.run_classification_model import run_classification_model
+from item_classification.run_classification_model import run_classification_model
 
 
 def text_classification(args):
