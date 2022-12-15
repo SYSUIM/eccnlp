@@ -22,7 +22,7 @@ def re_pattern(args):
     #仅保留前三类问题以及归因在问题中的样本
     Codesdf['Predict_非业绩归因'] = 0
     Codesdf.loc[(Codesdf['业绩归因问题类型'] != "业绩归因") & (Codesdf['业绩归因问题类型'] !=
-                                               "回答特定因素对业绩是否有影响") & (Codesdf['业绩归因问题类型'] != "未来发展趋势"), '是否为业绩归因回答'] = 0
+                                               "回答特定因素对业绩是否有影响") & (Codesdf['业绩归因问题类型'] != "分析优劣势"), '是否为业绩归因回答'] = 0
     Codesdf.loc[(Codesdf['原因归属在回答文本中'] == 0) & (Codesdf['是否为业绩归因回答'] == 1), '是否为业绩归因回答'] = 0
     log_filename = './data/log/' + args.model + time.strftime('%m.%d_%H.%M', time.localtime()) + '.log'
     logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(message)s')
@@ -177,13 +177,13 @@ def classification_dataset(dataset,args):
         random.seed(None)
         for i in range(train_num0):
             j = np.random.randint(0, train_num1)
-            train_balance_list.append(train_list1[j])
+            train_list.append(train_list1[j])
         for i in range(val_num0):
             j = np.random.randint(0, val_num1)
-            val_balance_list.append(val_list1[j])
+            val_list.append(val_list1[j])
         random.seed(10)
-        random.shuffle(train_balance_list)
-        random.shuffle(val_balance_list)
+        random.shuffle(train_list)
+        random.shuffle(val_list)
 
     # 对训练集、测试集进行下采样
     def downsampling():
@@ -191,12 +191,12 @@ def classification_dataset(dataset,args):
         train_num_list = random.sample(range(0, train_num0), train_num1)
         val_num_list = random.sample(range(0, val_num0), val_num1)
         for i in range(train_num1):
-            train_balance_list.append(train_list0[train_num_list[i]])
+            train_list.append(train_list0[train_num_list[i]])
         for i in range(val_num1):
-            val_balance_list.append(val_list0[val_num_list[i]])
+            val_list.append(val_list0[val_num_list[i]])
         random.seed(10)
-        random.shuffle(train_balance_list)
-        random.shuffle(val_balance_list)        
+        random.shuffle(train_list)
+        random.shuffle(val_list)        
 
     # logging.info('问题类型：'+ args.type)
     logging.info('训练集数量：' + str(len(train_list)))
@@ -205,17 +205,17 @@ def classification_dataset(dataset,args):
 
     if args.balance != 'none':
         if args.balance == 'up':
-            train_balance_list = [i for i in train_list0]
-            val_balance_list = [i for i in val_list0]
+            train_list = [i for i in train_list0]
+            val_list = [i for i in val_list0]
             upsampling()
         if args.balance == 'down':
-            train_balance_list = [i for i in train_list1]
-            val_balance_list = [i for i in val_list1]
+            train_list = [i for i in train_list1]
+            val_list = [i for i in val_list1]
             downsampling()
-        logging.info('训练集均衡后数量：' + str(len(train_balance_list)))
-        logging.info('验证集均衡后数量：' + str(len(val_balance_list)))
+        logging.info('训练集均衡后数量：' + str(len(train_list)))
+        logging.info('验证集均衡后数量：' + str(len(val_list)))
 
-    return train_balance_list, val_balance_list, test_list, train_dict, val_dict, test_dict
+    return train_list, val_list, test_list, train_dict, val_dict, test_dict
 
 
 '''传入dataset_list构建词库''' 
