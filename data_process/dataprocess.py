@@ -20,10 +20,10 @@ def re_pattern1(args):
     Codesdf['Predict_非业绩归因'] = 0
     log_filename = './log/' + '2.1_'+args.balance+'_'+time.strftime('%m.%d_%H.%M', time.localtime()) + '.log'
     logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(message)s')
-    logging.info("查看原始业绩归因样本情况:\n{}".format(Codesdf['是否为业绩归因回答'].value_counts()))
+    logging.info("查看原始业绩归因样本情况:\n{}\n".format(Codesdf['是否为业绩归因回答'].value_counts()))
     # Codesdf.loc[(Codesdf['业绩归因问题类型'] != "业绩归因") & (Codesdf['业绩归因问题类型'] != "回答特定因素对业绩是否有影响") & (Codesdf['业绩归因问题类型'] != "分析优劣势"), '是否为业绩归因回答'] = 0
     Codesdf.loc[(Codesdf['原因归属在回答文本中'] == 0) & (Codesdf['是否为业绩归因回答'] == 1), '是否为业绩归因回答'] = 0
-    logging.info("查看归因样本情况:\n{}".format(Codesdf['是否为业绩归因回答'].value_counts()))
+    logging.info("查看归因样本情况:\n{}\n".format(Codesdf['是否为业绩归因回答'].value_counts()))
 
 
     # 定义函数方便查看筛选效果
@@ -31,7 +31,7 @@ def re_pattern1(args):
         # Length=len(Codesdf[(Codesdf['是否为业绩归因回答'] == 0)])
         Len1 = len(Codesdf[Codesdf['Predict_非业绩归因'] == 1])
         # logging.info("总非业绩归因条目数", Length)
-        logging.info("增加{}后过滤数量:{}".format(Condition, Len1))
+        logging.info("增加{}后过滤数量:{}\n".format(Condition, Len1))
 
 
     # 定义业绩归因表达式
@@ -78,7 +78,7 @@ def re_pattern1(args):
     Len1 = len(Codesdf[Codesdf['Predict_非业绩归因'] == 1])
     Len2 = len(Codesdf[(Codesdf['Predict_非业绩归因'] == 1)
                & (Codesdf['是否为业绩归因回答'] == 1)])
-    logging.info("总共过滤非业绩归因回答数量："+ str(Len1))
+    logging.info("共过滤非业绩归因回答数量："+ str(Len1))
     logging.info("其中错误过滤数量：" + str(Len2))
     logging.info("其中正确过滤数量："+ str(Len1-Len2))
     logging.info("Precision："+ str(round((Len1-Len2)/Len1,4)))
