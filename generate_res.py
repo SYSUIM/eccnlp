@@ -1,6 +1,6 @@
 import pandas as pd
 
-from data_process.preprocess import read_file
+from data_process.info_extraction import read_file
 
 file_path = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2022-12-23_add_rerank.txt'
 # file_path = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/add_rank.txt'
