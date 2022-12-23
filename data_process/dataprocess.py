@@ -316,7 +316,7 @@ def classification_dataset(train_dict,val_dict,test_dict,args):
 
 
 '''传入dataset_list构建词库''' 
-def build_thesaurus(dataset,t_path,w_path):
+def build_thesaurus(dataset, t_path):
     '''加载停用词'''
     with open(t_path) as fr:
         stop_words = set([word.strip() for word in fr])
@@ -330,11 +330,13 @@ def build_thesaurus(dataset,t_path,w_path):
                 all_label_pro.append(data)
     
     # 将标注的原因归属分割成词或词语
-    mylog = open(w_path,mode='w',encoding='utf-8')
+    # mylog = open(w_path,mode='w',encoding='utf-8')
     words = []
+    word =[]
     for i in range(len(all_label_pro)):
         all_label_pro[i] = jieba.lcut(str(all_label_pro[i]))
         words += all_label_pro[i]
     for i in words:
         if i not in stop_words:
-            print(i,file=mylog)
+            word.append(i)
+    return word
