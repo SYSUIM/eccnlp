@@ -1,11 +1,11 @@
 import re
 import random
 import logging
-import argparse
 import numpy as np
 import pandas as pd
 import time
 import jieba
+from sklearn.model_selection import StratifiedShuffleSplit
 
 # parser = argparse.ArgumentParser(description='Data Processing')
 # parser.add_argument('--data', type=str, required=True, help='path of raw data')
@@ -82,10 +82,6 @@ def re_pattern1(args):
     logging.info("其中错误过滤数量：" + str(Len2))
     logging.info("其中正确过滤数量："+ str(Len1-Len2))
     logging.info("Precision："+ str(round((Len1-Len2)/Len1,4)))
-
-    #输出结果
-    # Codesdf=Codesdf.drop(columns=['Length'])
-    # Codesdf.to_csv("./process_file/re_filtered.csv")
 
     return Codesdf
 
@@ -196,7 +192,7 @@ def train_dataset(data, args):
     return dataset_list
 
 
-# 模型预测数据
+''' 模型预测数据 '''
 def predict_dataset(args):
     predict_data = pd.read_excel(args.predict_data)
     dataset_list = []
@@ -219,20 +215,37 @@ def predict_dataset(args):
 
 '''生成分类模型数据集'''
 def split_dataset(dataset):
+    content_list = []
+    label_list = []
+
+    for i in range(len(dataset)):
+        content, label = dataset[i]['content'],dataset[i]['label']
+        content = re.sub("[^\u4e00-\u9fa5]", "", str(content))
+        if content:           # 去除只保留汉字后出现的空值
+            content_list.append(content)
+            label_list.append(label)
+    
+    X = np.array(content_list)
+    y = np.array(label_list)
+    split = StratifiedShuffleSplit(n_splits=1, test_size=0.2,random_state=4)
+    for train_index, test_index in split.split(X, y):
+        train_num = train_index 
+        test_num = test_index
+    
+    split = StratifiedShuffleSplit(n_splits=1, test_size=2./8, random_state=4)
+    for train_index, val_index in split.split(X[train_num], y[train_num]):
+        train_tmp = train_num[train_index]
+        val_num = train_num[val_index]
+        train_num = train_tmp
+
     train_dict = []
     val_dict = []
     test_dict = []
-
-    #分割数据集(1:1:3)
-    for i in range(len(dataset)):
-        if i % 5 == 0:
-            test_dict.append(dataset[i])
-        elif i % 5 == 1:
-            val_dict.append(dataset[i])
-        else:
-            train_dict.append(dataset[i])
-
-    return train_dict,val_dict,test_dict
+    train_dict = [dataset[i] for i in train_num]
+    val_dict = [dataset[i] for i in val_num]
+    test_dict = [dataset[i] for i in test_num]
+    
+    return train_dict, val_dict, test_dict
 
 
 '''对数据集进行采样'''
@@ -273,20 +286,13 @@ def sampling(data_dict,args):
         data_dict = [i for i in data_dict1]
         downsampling()
 
-    return data_dict
-
-
 '''将dict转换为list'''
 def dict_to_list(data_dict):
     data_list = []
-    processed_dict = []
     for i in range(len(data_dict)):
         content, label = data_dict[i]['content'],data_dict[i]['label']
-        content = re.sub("[^\u4e00-\u9fa5]", "", str(content))
-        if content:           # 去除只保留汉字后出现的空值
-            data_list.append(list((content,label)))
-            processed_dict.append(data_dict[i])
-    return data_list, processed_dict
+        data_list.append(list((content,label)))
+    return data_list
 
 
 '''生成分类数据集并选择采样方法'''
@@ -295,9 +301,9 @@ def classification_dataset(train_dict,val_dict,test_dict,args):
         train_dict = sampling(train_dict,args)
         val_dict = sampling(val_dict,args)
 
-    train_list, train_dict = dict_to_list(train_dict)
-    val_list, val_dict = dict_to_list(val_dict)
-    test_list, test_dict = dict_to_list(test_dict)
+    train_list = dict_to_list(train_dict)
+    val_list = dict_to_list(val_dict)
+    test_list = dict_to_list(test_dict)
 
     random.seed(10)
     random.shuffle(train_list)
