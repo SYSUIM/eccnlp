@@ -6,21 +6,15 @@ import math
 import argparse
 from datetime import datetime
 
-parser = argparse.ArgumentParser(description='predict')
-parser.add_argument('--type', type=str, default='业绩归因',help='原因类型')
-args = parser.parse_args()
-
-def get_logger(name):
+def get_logger(name, logpath):
     logger = logging.getLogger(name)
     filename = f'{datetime.now().date()}_{name}.txt'
-    fh = logging.FileHandler("./data/res_log/2.0_"+ filename, mode='w+', encoding='utf-8')
+    fh = logging.FileHandler(logpath + "2.0_"+ filename, mode='w+', encoding='utf-8')
     formatter = logging.Formatter('%(message)s')
     logger.setLevel(logging.INFO)
     fh.setFormatter(formatter)
     logger.addHandler(fh)
     return logger
-
-log=get_logger('merge')
 
 def get_reason_list(filepath):
     rea_list = []
@@ -34,7 +28,7 @@ def get_reason_list(filepath):
                 rea_list.append(data_pre["raw_text"])
     return rea_list, num_list
 
-def merge_reasons(args, rea_list, num_list, filepath):
+def merge_reasons(args, rea_list, num_list, filepath, log):
     with open(filepath, "r", encoding="utf8") as f:
         lines = f.readlines()
         for j in range(len(num_list)):
@@ -60,9 +54,17 @@ def merge_reasons(args, rea_list, num_list, filepath):
             dic['output'] = [dic_rea]
             log.info(dic)
 
-# if __name__ == "__main__":
-filepath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/test.txt"
-filepath = "/data/pzy2022/project/eccnlp_local/info_extraction/info_extraction_result_1222.txt"
-rea_list, num_list = get_reason_list(filepath)
-merge_reasons(args, rea_list, num_list, filepath)
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='predict')
+    parser.add_argument('--type', type=str, default='业绩归因',help='原因类型')
+    args = parser.parse_args()
+
+    logpth = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/"
+    log = get_logger('merge',logpath)
+
+    # filepath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/test.txt"
+    filepath = "/data/pzy2022/project/eccnlp_local/info_extraction/info_extraction_result_1222.txt"
+    rea_list, num_list = get_reason_list(filepath)
+    merge_reasons(args, rea_list, num_list, filepath, log)
 
