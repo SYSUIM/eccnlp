@@ -1,26 +1,32 @@
 import functools
-import difflib
 import random
+import difflib
 import numpy as np
-import csv
 import logging
 import math
-import config
 import operator
 import argparse
 from datetime import datetime
 
-def get_logger(name):
+def get_logger(name,logpath):
     logger = logging.getLogger(name)
     filename = f'{datetime.now().date()}_{name}.log'
-    fh = logging.FileHandler(filename, mode='w+', encoding='utf-8')
+    fh = logging.FileHandler(logpath + filename, mode='w+', encoding='utf-8')
     formatter = logging.Formatter('%(message)s')
     logger.setLevel(logging.INFO)
     fh.setFormatter(formatter)
     logger.addHandler(fh)
-
     return logger
 
+def get_logger2(name, logpath):
+    logger = logging.getLogger(name)
+    filename = f'{datetime.now().date()}_{name}.log'
+    fh = logging.FileHandler(logpath + filename, mode='a+', encoding='utf-8')
+    formatter = logging.Formatter('%(asctime)s %(message)s')
+    logger.setLevel(logging.INFO)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    return logger
 
 def string_similar(s1, s2):
     return difflib.SequenceMatcher(None, s1, s2).quick_ratio()
@@ -79,9 +85,8 @@ def form_input_vector(all_rows,cnt):
     return y
 
 #加入构建的负样本
-def generate_negative_sample_and_addin(all,list_len):
+def generate_negative_sample_and_addin(args,all,list_len):
     alllist=[]
-    f_num=5
     i=0
     while i < len(all):
         alllist.append(all[i])
@@ -93,8 +98,8 @@ def generate_negative_sample_and_addin(all,list_len):
             alllist.append(all[i])
         #如果UIE提取的原因少于5个，随机生成缺少的负样本
         #负样本特征向量1范围（0，0.04），特征向量2范围（0，0.01）
-        if f_num-t >0:
-            for j in range(1,f_num-t+1):
+        if args.reason_num - t >0:
+            for j in range( 1 , args.reason_num - t + 1 ) :
                 tmp=[]
                 tmp.append(-1)
                 tmp.append(all[now_line][1])
@@ -105,39 +110,36 @@ def generate_negative_sample_and_addin(all,list_len):
     return alllist
 
 #构建input格式  eg:  -1 qid:0 1:0.1 2:0.09
-def form_input_data(alllist):
+def form_input_data(args, alllist):
     allline=[]
     all_list=[]
     train_list=[]
     test_list=[]
     cott=-1
     len_data=len(alllist)
+    bre=math.floor(len_data/args.reason_num*0.7)
+    bre=int(bre*args.reason_num)
+
     for i in alllist:
         str1 = "" + str(i[0]) +" " +"qid:" + str(i[1])+" 1:"+str(i[2])+" 2:"+str(i[3])
         allline.append(str1)
         cott+=1
         all_list.append(str1)
-        if cott<len_data*0.7:
+        if cott < bre :
             train_list.append(str1)
-            # print(str1,file=mylog2)
-        if cott>=len_data*0.7:
+        if cott >= bre:
             test_list.append(str1)
-            # print(str1,file=mylog3)
     return all_list,train_list,test_list   
 
-
-#args.type:业绩归因
-#将UIE提取的原因保存在test_reason.log中
-def write_reason(args,data):
+#将UIE提取的原因及构建的原因保存在reason_list中
+def write_reason(args, data, reason_list):
     cot=0
     for j in data[args.type]:
-        log4.info(j["text"])
+        reason_list.append(j["text"])
         cot+=1
-    while cot<5:
-        log4.info("Virtual_sample")
+    while cot < args.reason_num :
+        reason_list.append("Virtual_sample")
         cot+=1
-
-
 
 #读取词库中的词
 def read_word(word_fath):
@@ -150,32 +152,28 @@ def read_word(word_fath):
 
 #构建模型所需的数据,返回 全部数据列表，训练数据列表，测试数据列表，csv所需要的content和lab列表
 def form_input_list(args):
-    vocab = read_word("word.log")
-    with open("my_ie1018v2.log", "r", encoding="utf8") as f:
-        all_rows=[]  #
+    vocab = read_word("/data/fkj2023/Project/eccnlp/data/log/word.log")
+    with open(args.path_of_merged_reasons, "r", encoding="utf8") as f:
+        all_rows=[]  
         pro_cnt=[]  #存词库中的词在原因中出现的次数
+        reason_list = []
         key_num=-1  #标记quary
-        txt_data=[] #生成的csv所需要的content,lab列表
         lines = f.readlines()
         for i in range(len(lines)):
             if lines[i][0] != '{':
                 continue
-            data = eval(lines[i])
-            if len(data) == 0:  # 预测为无因果
+            data_pre = eval(lines[i])
+            if len(data_pre["output"][0]) == 0:  # 预测为无因果
                 continue
+            data=data_pre["output"][0]
+            # print(data)#{'业绩归因': [{'text': '“调整年”', 'start': 3, 'end': 8, 'probability': 0.6058174246136119}]}
             elem_num=len(data[args.type])        
             if elem_num>1:           # 预测出的因果不少于1个
-                str2=lines[i-1][7:]
-                data2=eval(str2)
-                sentence_txt=data2["content"]
-                lab_txt=data2["result_list"][0]["text"] #当前quary下管院标记的原因
+                lab_txt=data_pre["result_list"][0][0]["text"] #当前quary下管院标记的原因
                 if len(lab_txt) != 0:
-                    txt_data_line=[] 
-                    txt_data_line.extend([sentence_txt, lab_txt])
-                    txt_data.append(txt_data_line)
                     key_num+=1 #合法quary
                     line_elem=[]
-                    write_reason(args,data)
+                    write_reason(args, data, reason_list)                   
                     for j in data[args.type]:
                         elem=[]#当前quary 下每一个原因的特征向量
                         tmp=string_similar(j["text"],lab_txt) #管院标记原因与UIE提取原因的相似度
@@ -190,9 +188,45 @@ def form_input_list(args):
         cnt = normalize(pro_cnt)
         list_len=len(all_rows)
         all = form_input_vector(all_rows,cnt)
-        alllist = generate_negative_sample_and_addin(all,list_len)
-        all_list,train_list,test_list = form_input_data(alllist)
-    return all_list, train_list, test_list, txt_data
+        alllist = generate_negative_sample_and_addin(args,all,list_len)
+        all_list,train_list,test_list = form_input_data(args, alllist)
+    return all_list, train_list, test_list, reason_list
+
+def form_predict_input_list(args):
+    vocab = read_word("/data/fkj2023/Project/eccnlp/data/log/word.log")
+    with open(args.path_of_merged_reasons, "r", encoding="utf8") as f:
+        all_rows=[]  
+        pro_cnt=[]  #存词库中的词在原因中出现的次数
+        key_num=-1  #标记quary
+        lines = f.readlines()
+        reasons=[] 
+        for i in range(len(lines)):
+            if lines[i][0] != '{':
+                continue
+            data_pre = eval(lines[i])
+            if len(data_pre["output"][0]) == 0:  # 预测为无因果
+                continue
+            data=data_pre["output"][0]
+            elem_num=len(data[args.type])                   
+            if elem_num>1:           # 预测出的因果不少于1个
+                lab_txt=data_pre["result_list"][0][0]["text"] #当前quary下管院标记的原因
+                # if len(lab_txt) != 0:
+                key_num+=1 #合法quary qid
+                line_elem=[]             
+                for j in data[args.type]:
+                    reasons.append(j["text"])
+                    elem=[]#当前quary 下每一个原因的特征向量
+                    tmp=string_similar(j["text"],lab_txt) #管院标记原因与UIE提取原因的相似度
+                    cot = calculate_cot(j,vocab)
+                    elem.extend([key_num, tmp, j["probability"], cot])                    
+                    pro_cnt.append(cot)
+                    line_elem.append(elem)
+                all_rows = generate_label(line_elem,all_rows) 
+        cnt = normalize(pro_cnt)
+        list_len=len(all_rows)
+        all = form_input_vector(all_rows,cnt)
+        all_list,train_list,test_list = form_input_data(args, all)
+    return all_list, reasons
 
 def cmp(x,y):
     if x>y:
@@ -203,7 +237,7 @@ def cmp(x,y):
         return 0
 
 #解析有标签的数据文本，返回元组: (map[qid]feature_vec, list[qid])
-def parse_labeled_data_file(fin):
+def parse_labeled_data_file(args,fin):
     data = {}
     keys = []
     last_key = ""
@@ -213,9 +247,9 @@ def parse_labeled_data_file(fin):
         elems = line.split(" ")
         label = float(elems[0])
         qid = elems[1].split(":")[1]
-        feature_v = [0.0] * config.FEATURE_NUM
+        feature_v = [0.0] * 2
         # 提取line中的feature_v[1],feature_v[2]
-        for i in range(2, config.FEATURE_NUM + 2):
+        for i in range(2, args.f_num + 2):
             subelems = elems[i].split(":")
             # 1   0.69
             if len(subelems) < 2:
@@ -234,19 +268,6 @@ def parse_labeled_data_file(fin):
 
 #计算需要一次检索的样本对
 def calc_query_doc_pairwise_data(doc_list):
-    """Calc required sample pairs from one retrival
-    
-    If doc_list contains A, B, C and A > B > C
-         pairs are generated as A > B, A > C, B > C
-
-    Args:
-        doc_list: list of list: [score, f1, f2 , ..., fn]
-
-    Returns:
-        [X1, X2], [Y1, Y2]:
-        X1.shape = X2.shape = (None, config.FEATURE_NUM)
-        Y1.shape = Y2.shape = (None, 1)
-    """
     X1 = []
     X2 = []
     Y1 = []
@@ -262,33 +283,45 @@ def calc_query_doc_pairwise_data(doc_list):
     return [X1, X2], [Y1, Y2]
 
 
-
-
 if __name__ == "__main__":
-    log1=get_logger('train')
-    log2=get_logger('test')
-    log3=get_logger('all_data')
-    log4=get_logger('reason_of_test')
 
     parser = argparse.ArgumentParser(description='Data Processing')
-    parser.add_argument('--type', type=str, default='业绩归因',help='原因类型')
+    parser.add_argument('--type', type=str, default='业绩归因',help='type of answer')
+    parser.add_argument('--reason_num', type=int, default=10,help='reason number')
+    parser.add_argument('--path_of_merged_reasons', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2022-12-23_merge.txt',help='path of merged reasons')
+    parser.add_argument('--f_num', type=int, default=2, help='feature number')
+    parser.add_argument('--usage', type=str, default="predict", help='generate train data or predict data')
+    
     args = parser.parse_args()
 
-    all_list, train_list, test_list, txt_data = form_input_list(args)
-    all_list_len=len(all_list)
-    for i in range(all_list_len):
-        if i<int(all_list_len*0.7):
-            log1.info(all_list[i])
-        else:
-            log2.info(all_list[i])
-        log3.info(all_list[i])
+    logpath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/transfer/" 
 
-    #将回答和label写入csv文件
-    fd = open('1203_all_content.csv', 'w',encoding="utf-8-sig")
-    writer = csv.writer(fd)
-    header=['content','label']
-    writer.writerow(header)
-    csv_len=len(txt_data)
-    for i in range(csv_len):
-        if i>=csv_len*0.7:
-            writer.writerow(txt_data[i])
+
+    if (args.usage == "train"):
+        log1=get_logger('train', logpath)
+        log2=get_logger('test', logpath)
+        log3=get_logger('all_data', logpath)
+        log4=get_logger('reason_of_test', logpath)
+
+        all_list, train_list, test_list, reason_list = form_input_list(args)
+
+        for i in range(len(train_list)):
+            log1.info(train_list[i]) 
+        for i in range(len(test_list)):
+            log2.info(test_list[i])
+        for i in range(len(all_list)):
+            log3.info(all_list[i])
+        for i in range(len(reason_list)):
+            log4.info(reason_list[i])
+
+    if (args.usage == "predict"):
+        log5=get_logger('all_predict_data', logpath)
+        log6=get_logger('all_predict_reasons', logpath)
+        
+        all_list, reasons = form_predict_input_list(args)
+
+        for i in range(len(all_list)):
+            log5.info(all_list[i]) 
+
+        for i in range(len(reasons)):
+            log6.info(reasons[i]) 
