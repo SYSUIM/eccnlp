@@ -247,7 +247,7 @@ def parse_labeled_data_file(args,fin):
         elems = line.split(" ")
         label = float(elems[0])
         qid = elems[1].split(":")[1]
-        feature_v = [0.0] * 2
+        feature_v = [0.0] * args.f_num
         # 提取line中的feature_v[1],feature_v[2]
         for i in range(2, args.f_num + 2):
             subelems = elems[i].split(":")
