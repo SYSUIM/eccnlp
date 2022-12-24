@@ -14,15 +14,6 @@ from datetime import datetime
 from rank_data_process import form_input_list, parse_labeled_data_file, get_logger2
 tf.disable_v2_behavior()
 
-# parser = argparse.ArgumentParser(description='predict')
-# parser.add_argument('--MODEL_PATH', type=str, default='./data/data_model/model_v16_lambdarank.ckpt',help='模型保存路径')
-# parser.add_argument('--f_num', type=int, default=2, help='feature number')
-# parser.add_argument('--type', type=str, default='业绩归因',help='type of answer')
-# parser.add_argument('--reason_num', type=int, default=10,help='reason number')
-# parser.add_argument('--path_of_merged_reasons', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2022-12-23_merge.txt',help='path of merged reasons')
-# parser.add_argument('--top', type=str, default='top1', help='choose top1 or top2')
-# args = parser.parse_args()
-
 def convert_np_data(query_doc_list):
     x = []
     y = []
