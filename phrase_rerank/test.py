@@ -29,7 +29,7 @@ def add_reason(o1,reason_id,reason_list_test):
         reason_id+=1
     return reason_id, o
 
-def test_model(args, test_list):
+def test_model(args, test_list, logpath):
     test_data, test_data_keys = parse_labeled_data_file(args, test_list)
     test_data_key_count = len(test_data_keys)
     reason_list_test = reason_list
@@ -66,33 +66,24 @@ def test_model(args, test_list):
                 else:
                     result_label = "falsepositive"
                     falsepositive_rank_count += 1
-                for i in range(o1.shape[0]):
-                    log1.info("%s\t%.2f\t%.2f\t%s\t%s" % (result_label, o[i][0], O[i], qid, o[i][1]))
-            
+
             if(args.top == "top2"):
                 if (o_sorted[0][0]==o[0][0] and o_sorted[1][0]==o[1][0]) or (o_sorted[0][0]==o[1][0] and o_sorted[1][0]==o[0][0]):
                     result_label = "true_positive"
                 else:
                     result_label = "falsepositive"
                     falsepositive_rank_count += 1
-                for i in range(o1.shape[0]):
-                    log2.info("%s\t%.2f\t%.2f\t%s\t%s" % (result_label, o[i][0], O[i], qid, o[i][1]))
-        
-        if(args.top == "top1"):
-            log1.info ("-- rank  top1 precision [%d/%d = %f] -- " % (
-                    total_queries_count - falsepositive_rank_count,
-                    total_queries_count,
-                    1.0 - 1.0 * falsepositive_rank_count / total_queries_count
-            ))
-            log1.info("Model restored from file: %s" % args.MODEL_PATH)
 
-        if(args.top == "top2"):       
-            log2.info ("-- rank  top2 precision [%d/%d = %f] -- " % (
-                    total_queries_count - falsepositive_rank_count,
-                    total_queries_count,
-                    1.0 - 1.0 * falsepositive_rank_count / total_queries_count
-            ))
-            log2.info("Model restored from file: %s" % args.MODEL_PATH)
+            for i in range(o1.shape[0]):
+                log.info("%s\t%.2f\t%.2f\t%s\t%s" % (result_label, o[i][0], O[i], qid, o[i][1]))
+        
+        log.info ("-- rank  top1 precision [%d/%d = %f] -- " % (
+                total_queries_count - falsepositive_rank_count,
+                total_queries_count,
+                1.0 - 1.0 * falsepositive_rank_count / total_queries_count
+        ))
+        log.info("Model restored from file: %s" % args.MODEL_PATH)
+
 
 if __name__ == "__main__":
 
@@ -107,10 +98,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logpath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/"
-    log1 = get_logger2('top1-M16',logpath)
-    log2 = get_logger2('top2-M16',logpath)
-
+    if(args.top == "top1"):
+        log = get_logger2('top1-M16',logpath)
+    if(args.top == "top2"):
+        log = get_logger2('top2-M16',logpath)
+    
     all_list, train_list, test_list, reason_list = form_input_list(args)
-    test_model(args, test_list)
+    test_model(args, test_list, logpath)
 
 
