@@ -1,27 +1,26 @@
-lambdarank
-Reference implementation of [Burges, C., et al., 2007]
+环境：tensorflow 2.5
 
-模型参考https://github.com/Jabberwockleo
+# lambdarank.py
+参考https://github.com/Jabberwockleo
 
-环境：tf2.2
+# merge_reasons.py
+将uie对一个回答中所有短句预测出的原因都重新放到对应于相应回答的list中
 
-1. python build_word.py
+# rank_data_process.py
+可选参数 --usage
+--usage train : 生成用于训练，测试排序模型的数据
+--usage predict ：生成待预测排序的数据
+也可以直接在其他模块调用函数，直接返回需要的以上数据
 
-将管院标注的原因进行分词，储存在word.log中
+# train.py
+训练排序模型
 
-2. python generate_labeled_data_v2.py
+# test.py 
+测试排序模型
+可选参数 --top
+--top top1 : 评估top1的准确率
+--top top2 : 评估top2的准确率
 
-构建具有标记的正负样本数据，70%用于训练，30%用于预测
+# predict.py
+给一个回答下至少预测出了两个原因的样本进行原因排序，并将排序后的原因列表写入字典
 
-3. python train.py
-
-训练模型
-
-4. python predict_top1.py  预测 rank top1 的准确率
-
-python predict_top2.py  预测 rank top2 的准确率
-
-ps: 
-mock.py:用于解析输入的文本数据并构建pair对
-
-lambdarank.py :利用梯度上升法来更新参数
