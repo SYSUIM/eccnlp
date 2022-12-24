@@ -50,8 +50,6 @@ def test_model(args, test_list):
         init = tf.global_variables_initializer()
         sess.run(init)
         saver.restore(sess, args.MODEL_PATH)    
-        saver.restore(sess, args.MODEL_PATH)
-        saver.restore(sess, args.MODEL_PATH)    
         total_pairs_count = 0
         falsepositive_pairs_count = 0
         total_queries_count = test_data_key_count
