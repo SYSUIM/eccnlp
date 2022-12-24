@@ -3,19 +3,27 @@
 import tensorflow.compat.v1 as tf
 # import tensorflow as tf
 tf.disable_v2_behavior()
-import argparse
+# import argparse
 
-parser = argparse.ArgumentParser(description='lambdarank')
-parser.add_argument('--FEATURE_NUM', type=int, default=2, help='特征维度')
-parser.add_argument('--LAYER_WIDTH', type=int, default=10, help='图层宽度')   
-parser.add_argument('--USE_HIDDEN_LAYER', type=bool, default=True, help='是否使用隐藏层')
-parser.add_argument('--QUALITY_MEASURE', type=str, default='normalized_discounted_cumulative_gain', help='质量检测')
-parser.add_argument('--NO_LAMBDA_MEASURE_USING_SGD', type=str, default='pure_sgd', help='不使用LAMBDA时')
-parser.add_argument('--LEARNING_RATE', type=float, default=0.001, help='学习率')
-parser.add_argument('--LAMBDA_MEASURE_AUC', type=str, default='factorized_pairwise_precision', help='AUC指标')
-parser.add_argument('--LAMBDA_MEASURE_NDCG', type=str, default='normalized_discounted_cumulative_gain', help='NDCG指标')
+# parser = argparse.ArgumentParser(description='lambdarank')
+# parser.add_argument('--FEATURE_NUM', type=int, default=2, help='特征维度')
+# parser.add_argument('--LAYER_WIDTH', type=int, default=10, help='图层宽度')   
+# parser.add_argument('--USE_HIDDEN_LAYER', type=bool, default=True, help='是否使用隐藏层')
+# parser.add_argument('--QUALITY_MEASURE', type=str, default='normalized_discounted_cumulative_gain', help='质量检测')
+# parser.add_argument('--NO_LAMBDA_MEASURE_USING_SGD', type=str, default='pure_sgd', help='不使用LAMBDA时')
+# parser.add_argument('--LEARNING_RATE', type=float, default=0.001, help='学习率')
+# parser.add_argument('--LAMBDA_MEASURE_AUC', type=str, default='factorized_pairwise_precision', help='AUC指标')
+# parser.add_argument('--LAMBDA_MEASURE_NDCG', type=str, default='normalized_discounted_cumulative_gain', help='NDCG指标')
+# args = parser.parse_args()
 
-args = parser.parse_args()
+args_FEATURE_NUM = 2
+args_LAYER_WIDTH = 10
+args_USE_HIDDEN_LAYER = True
+args_QUALITY_MEASURE = "normalized_discounted_cumulative_gain"
+args_NO_LAMBDA_MEASURE_USING_SGD = "pure_sgd"
+args_LEARNING_RATE = 0.001
+args_LAMBDA_MEASURE_AUC = "factorized_pairwise_precision"
+args_LAMBDA_MEASURE_NDCG = "normalized_discounted_cumulative_gain"
 
 
 with tf.name_scope("debug"):
@@ -25,13 +33,13 @@ with tf.name_scope("debug"):
 
 weights = {
         "hidden": tf.Variable(tf.random_normal(
-            [args.FEATURE_NUM, args.LAYER_WIDTH]), name="W_hidden"),
-        "out": tf.Variable(tf.random_normal([args.LAYER_WIDTH, 1]), name="W_out"),
-        "linear": tf.Variable(tf.random_normal([args.FEATURE_NUM, 1]), name="W_linear")
+            [args_FEATURE_NUM, args_LAYER_WIDTH]), name="W_hidden"),
+        "out": tf.Variable(tf.random_normal([args_LAYER_WIDTH, 1]), name="W_out"),
+        "linear": tf.Variable(tf.random_normal([args_FEATURE_NUM, 1]), name="W_linear")
 }
 
 biases = {
-        "hidden": tf.Variable(tf.random_normal([args.LAYER_WIDTH]), name="b_hidden"),
+        "hidden": tf.Variable(tf.random_normal([args_LAYER_WIDTH]), name="b_hidden"),
         "out": tf.Variable(tf.random_normal([1]), name="b_out"),
         "linear": tf.Variable(tf.random_normal([1]), name="b_linear"),
 }
@@ -39,7 +47,7 @@ biases = {
 with tf.name_scope("mlp"):
     with tf.name_scope("input"):
         # tf.compat.v1.disable_eager_execution()
-        X = tf.placeholder(tf.float32, [None, args.FEATURE_NUM], name="X")
+        X = tf.placeholder(tf.float32, [None, args_FEATURE_NUM], name="X")
         Y = tf.placeholder(tf.float32, [None, 1], name="Y")
 
     def graph_params():
@@ -52,7 +60,7 @@ with tf.name_scope("mlp"):
                 weight_2 = [w_p+1, ...]
         """
         layer_params = []
-        if args.USE_HIDDEN_LAYER == True:
+        if args_USE_HIDDEN_LAYER == True:
             layer_params.append((weights["hidden"], biases["hidden"]))
             layer_params.append((weights["out"], biases["out"]))
         else:
@@ -71,7 +79,7 @@ with tf.name_scope("mlp"):
         Returns:
             y: the output predict tensor shaped [None, y_i]
         """
-        if args.USE_HIDDEN_LAYER == True:
+        if args_USE_HIDDEN_LAYER == True:
             with tf.name_scope("hidden_layer"):
                 layer_h1 = tf.add(tf.matmul(X, weights["hidden"]), biases["hidden"])
                 layer_h1 = tf.nn.relu(layer_h1)
@@ -192,10 +200,10 @@ with tf.name_scope("train_op"):
             dC_dwk_arr.append(dC_dwk)
         return dC_dwk_arr
 
-    if args.QUALITY_MEASURE == args.NO_LAMBDA_MEASURE_USING_SGD:
+    if args_QUALITY_MEASURE == args_NO_LAMBDA_MEASURE_USING_SGD:
         train_op = tf.train.GradientDescentOptimizer(
-            args.LEARNING_RATE).minimize(loss)
-    elif args.QUALITY_MEASURE == args.LAMBDA_MEASURE_AUC:
+            args_LEARNING_RATE).minimize(loss)
+    elif args_QUALITY_MEASURE == args_LAMBDA_MEASURE_AUC:
         # compute gradients dC/dw_k
         dC_dwk_arr = compute_dC_dwk(lambda_i)
 
@@ -205,11 +213,11 @@ with tf.name_scope("train_op"):
 
         # apply gradients
         train_op = tf.train.GradientDescentOptimizer(
-            args.LEARNING_RATE).apply_gradients(
+            args_LEARNING_RATE).apply_gradients(
                 [(gr, wk) for gr, wk in zip(flat_grad, flat_wk)]
             )
         pass
-    elif args.QUALITY_MEASURE == args.LAMBDA_MEASURE_NDCG:
+    elif args_QUALITY_MEASURE == args_LAMBDA_MEASURE_NDCG:
         relevance = tf.maximum(Y, 0) # negative label normalize to 0
         Y_r = tf.squeeze(Y)
         Y_sort_r = tf.nn.top_k(Y_r, k=tf.shape(Y_r)[0]).values
@@ -290,7 +298,7 @@ with tf.name_scope("train_op"):
 
         # apply gradients
         train_op = tf.train.GradientDescentOptimizer(
-            args.LEARNING_RATE).apply_gradients(
+            args_LEARNING_RATE).apply_gradients(
                 [(gr, wk) for gr, wk in zip(flat_grad, flat_wk)]
             )
         pass
