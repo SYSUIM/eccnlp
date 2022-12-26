@@ -75,6 +75,7 @@ def get_arguments():
     '''
     here are parameters for Rerank
     '''
+    parser.add_argument('--DEBUG_LOG', type=bool, default=False, help='choose whether to output debug')
     parser.add_argument('--MODEL_PATH', type=str, default='./data/data_model/model_v15_lambdarank.ckpt',help='rerank model path')
     parser.add_argument('--type', type=str, default='业绩归因',help='type of reason')
     parser.add_argument('--path_of_merged_reasons', type=str, default='./data/res_log/2.0_2022-12-23_merge.txt',help='path of merged reasons')
