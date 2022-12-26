@@ -75,10 +75,12 @@ def get_arguments():
     '''
     here are parameters for Rerank
     '''
-    parser.add_argument('--MODEL_PATH', type=str, default='./data_model_v8_lambdarank.ckpt',help='模型保存路径')
-    parser.add_argument('--test_data_path', type=str, default='2022-12-03_test.log',help='测试集路径')
-    parser.add_argument('--result_path', type=str, default='result1203.csv',help='结果文件路径')
-    parser.add_argument('--reason_path', type=str, default='2022-12-03_reason_of_test.log',help='测试集原因路径')
+    parser.add_argument('--DEBUG_LOG', type=bool, default=False, help='choose whether to output debug')
+    parser.add_argument('--MODEL_PATH', type=str, default='./data/data_model/model_v15_lambdarank.ckpt',help='rerank model path')
+    parser.add_argument('--type', type=str, default='业绩归因',help='type of reason')
+    parser.add_argument('--path_of_merged_reasons', type=str, default='./data/res_log/2.0_2022-12-23_merge.txt',help='path of merged reasons')
+    parser.add_argument('--reason_num', type=int, default=10,help='reason number')
+    parser.add_argument('--f_num', type=int, default=2, help='feature number')
 
     args = parser.parse_args()
 
