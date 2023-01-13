@@ -10,6 +10,9 @@ from sklearn.model_selection import StratifiedShuffleSplit
 # parser = argparse.ArgumentParser(description='Data Processing')
 # parser.add_argument('--data', type=str, required=True, help='path of raw data')
 # parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
+# parser.add_argument('--train_size', default=0.6, type=float, help='ratio of train data')
+# parser.add_argument('--val_size', default=0.2, type=float, help='ratio of train data')
+# parser.add_argument('--test_size', default=0.2, type=float, help='ratio of train data')
 # parser.add_argument('--balance', default='none',type=str, required=True, help='up or down or none')
 # parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
 # args = parser.parse_args()
@@ -214,7 +217,7 @@ def predict_dataset(args):
 
 
 '''生成分类模型数据集'''
-def split_dataset(dataset):
+def split_dataset(dataset,args):
     content_list = []
     label_list = []
 
@@ -227,23 +230,33 @@ def split_dataset(dataset):
     
     X = np.array(content_list)
     y = np.array(label_list)
-    split = StratifiedShuffleSplit(n_splits=1, test_size=0.2,random_state=4)
-    for train_index, test_index in split.split(X, y):
-        train_num = train_index 
-        test_num = test_index
-    
-    split = StratifiedShuffleSplit(n_splits=1, test_size=2./8, random_state=4)
-    for train_index, val_index in split.split(X[train_num], y[train_num]):
-        train_tmp = train_num[train_index]
-        val_num = train_num[val_index]
-        train_num = train_tmp
-
+    if args.test_size > 0:
+        # 划分训练集和测试集       
+        split = StratifiedShuffleSplit(n_splits=1, test_size=args.test_size, random_state=4)
+        for train_index, test_index in split.split(X, y):
+            train_num = train_index 
+            test_num = test_index
+        if args.val_size > 0:
+             #划分验证集    
+            split = StratifiedShuffleSplit(n_splits=1, test_size=args.val_size/(1-args.test_size), random_state=4)
+            for train_index, val_index in split.split(X[train_num], y[train_num]):
+                train_tmp = train_num[train_index]
+                val_num = train_num[val_index]
+                train_num = train_tmp
+    else:        
+        #无测试集，只有训练集和验证集
+        split = StratifiedShuffleSplit(n_splits=1, test_size=args.val_size, random_state=4)
+        for train_index, val_index in split.split(X,y):
+            train_num = train_index
+            val_num = val_index
     train_dict = []
     val_dict = []
     test_dict = []
     train_dict = [dataset[i] for i in train_num]
-    val_dict = [dataset[i] for i in val_num]
-    test_dict = [dataset[i] for i in test_num]
+    if args.val_size > 0:
+        val_dict = [dataset[i] for i in val_num]
+    if args.test_size > 0:
+        test_dict = [dataset[i] for i in test_num]
     
     return train_dict, val_dict, test_dict
 
@@ -285,6 +298,7 @@ def sampling(data_dict,args):
     if args.balance == 'down':
         data_dict = [i for i in data_dict1]
         downsampling()
+    return data_dict
 
 '''将dict转换为list'''
 def dict_to_list(data_dict):
@@ -299,7 +313,8 @@ def dict_to_list(data_dict):
 def classification_dataset(train_dict,val_dict,test_dict,args):
     if args.balance != 'none':
         train_dict = sampling(train_dict,args)
-        val_dict = sampling(val_dict,args)
+        if args.val_size > 0:
+            val_dict = sampling(val_dict,args)
 
     train_list = dict_to_list(train_dict)
     val_list = dict_to_list(val_dict)
