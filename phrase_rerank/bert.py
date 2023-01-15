@@ -3,9 +3,9 @@ from transformers import BertModel, BertConfig,BertTokenizer
 from torch import nn
  
 # 自己下载模型相关的文件，并指定路径
-config_path = './bert_model/config.json'
-model_path = './bert_model/pytorch_model.bin'
-vocab_path = './bert_model/vocab.txt'
+config_path = '/data/fkj2023/Project/eccnlp/phrase_rerank/bert_model/config.json'
+model_path = '/data/fkj2023/Project/eccnlp/phrase_rerank/bert_model/pytorch_model.bin'
+vocab_path = '/data/fkj2023/Project/eccnlp/phrase_rerank/bert_model/vocab.txt'
  
  
 # ——————构造模型——————
@@ -68,9 +68,6 @@ def sentence_features(texts):
 
     # ——————提取文本特征——————
     text_hashCodes = textNet(tokens_tensor, segments_tensors, input_masks_tensors)  # text_hashCodes是一个32-dim文本特征
-
-    # print(text_hashCodes)
-    # print(text_hashCodes.tolist())
 
     return text_hashCodes.tolist()
 
