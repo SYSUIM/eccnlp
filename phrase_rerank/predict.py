@@ -9,7 +9,7 @@ import pandas as pd
 import logging
 import math
 import argparse
-from rank_data_process import form_predict_input_list, parse_labeled_data_file, get_logger
+from rank_data_process import form_predict_input_list, parse_labeled_data_file, get_logger3
 tf.disable_v2_behavior()
 
 #此程序用于对uie抽取出原因至少有两个的样本排序，并在总数据中写入字典rerank
@@ -81,12 +81,12 @@ def predict(all_list, reasons):
 
 if __name__ == "__main__":
     logpath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/"
-    log = get_logger("predict-M15", logpath)
+    log = get_logger3("predict-M15-0113", logpath)
 
     parser = argparse.ArgumentParser(description='predict')
     parser.add_argument('--MODEL_PATH', type=str, default='./data/data_model/model_v15_lambdarank.ckpt',help='rerank model path')
     parser.add_argument('--type', type=str, default='业绩归因',help='type of reason')
-    parser.add_argument('--path_of_merged_reasons', type=str, default='./data/res_log/2.0_2022-12-23_merge.txt',help='path of merged reasons')
+    parser.add_argument('--path_of_merged_reasons', type=str, default='./data/res_log/2.0_2023-01-15_merge_0113.txt',help='path of merged reasons')
     parser.add_argument('--reason_num', type=int, default=10,help='reason number')
     parser.add_argument('--f_num', type=int, default=2, help='feature number')
     args = parser.parse_args()
