@@ -169,7 +169,7 @@ def train_dataset(data, args):
             split_rule = '[。？！]'
             Acntet_cut = re.split(split_rule,row['Acntet'])
             for sentence in Acntet_cut:
-                sentence = re.sub('[\n,?]','', str(sentence))
+                sentence = re.sub('\\n|\?|&lt;|br|&gt;','', str(sentence))
                 #设置切分后最小长度
                 if len(sentence) > int(args.min_length):
                     data_dict = {'number':'','content': '', 'raw_text':'', 'label': 0, 'result_list': [{"text": '', "start":None , "end":None}], 'prompt': ''}
