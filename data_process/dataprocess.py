@@ -179,7 +179,7 @@ def train_dataset(data, args):
                     result_dict = {}
                     #设置问题类型
                     # if row['业绩归因问题类型'] == '业绩归因':
-                    if row['业绩归因问题类型'] == '业绩归因' or row['业绩归因问题类型'] == '回答特定因素对业绩是否有影响' or row['业绩归因问题类型'] == '未来发展趋势':
+                    if row['业绩归因问题类型'] == '业绩归因' or row['业绩归因问题类型'] == '回答特定因素对业绩是否有影响' or row['业绩归因问题类型'] == '分析优劣势':
                         for i in range(1,11):
                             if str(row['原因归属' + str(i)]) is None:
                                 continue
