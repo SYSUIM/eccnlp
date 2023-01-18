@@ -33,15 +33,9 @@ class BertTextNet(nn.Module):
  
  
 
-def sentence_features(texts):
-
-    textNet = BertTextNet(code_length=16)
+def sentence_features(textNet, tokenizer, texts):
 
     # ——————输入处理——————
-    tokenizer = BertTokenizer.from_pretrained(vocab_path)
-
-    # texts = ['[CLS]今天天气不错，适合出行。[SEP]',
-    #         '[CLS]今天是晴天，可以出去玩。[SEP]']
     tokens, segments, input_masks = [], [], []
     for text in texts:
         tokenized_text = tokenizer.tokenize(text)  # 用tokenizer对句子分词
@@ -67,14 +61,18 @@ def sentence_features(texts):
     input_masks_tensors = torch.tensor(input_masks)
 
     # ——————提取文本特征——————
-    text_hashCodes = textNet(tokens_tensor, segments_tensors, input_masks_tensors)  # text_hashCodes是一个32-dim文本特征
+    text_hashCodes = textNet(tokens_tensor, segments_tensors, input_masks_tensors)  # text_hashCodes是一个16-dim文本特征
 
     return text_hashCodes.tolist()
 
 if __name__=="__main__":
+
+    textNet = BertTextNet(code_length=16)
+    tokenizer = BertTokenizer.from_pretrained(vocab_path)
+    
     texts = ['[CLS][SEP]',
             '[CLS]今天是晴天，可以出去玩。[SEP]']
-    fea = sentence_features(texts)
+    fea = sentence_features(textNet, tokenizer, texts)
     print("------------")
     print(fea)
     # print(fea[0])
