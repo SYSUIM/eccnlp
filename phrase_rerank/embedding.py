@@ -6,24 +6,12 @@ import math
 import argparse
 from datetime import datetime
 from bert import sentence_features
-
-parser = argparse.ArgumentParser(description='embedding')
-parser.add_argument('--type', type=str, default='业绩归因',help='原因类型')
-args = parser.parse_args()
-
-def get_logger(name):
-    logger = logging.getLogger(name)
-    filename = f'{datetime.now().date()}_{name}.txt'
-    fh = logging.FileHandler("./data/res_log/2.0_"+ filename, mode='w+', encoding='utf-8')
-    formatter = logging.Formatter('%(message)s')
-    logger.setLevel(logging.INFO)
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-    return logger
-
-log=get_logger('add_embedding')
+from transformers import BertTokenizer, BertTextNet
+from rank_data_process import get_logger3
 
 def add_embedding(args, filepath):
+    textNet = BertTextNet(args.code_length)
+    tokenizer = BertTokenizer.from_pretrained(args.vocab_path)    
     with open(filepath, "r", encoding="utf8") as f:
         lines = f.readlines()       
         for i in range(len(lines)):
@@ -48,7 +36,7 @@ def add_embedding(args, filepath):
                 for j in data[args.type]:           
                     s_before = s_cls + str_pre[0 : j["start"]] + s_sep
                     s_after = s_cls + str_pre[j["end"] : ] + s_sep
-                    sen_f = sentence_features([s_before, s_after])
+                    sen_f = sentence_features(textNet, tokenizer, [s_before, s_after])
                     j['s_before'] = sen_f[0]
                     j['s_after'] = sen_f[1]
                     uie_re.append(j)
@@ -58,6 +46,18 @@ def add_embedding(args, filepath):
                
                     
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description='embedding')
+    parser.add_argument('--type', type=str, default='业绩归因',help='原因类型')
+    parser.add_argument('--vocab_path', type=str, default='/data/fkj2023/Project/eccnlp/phrase_rerank/bert_model/vocab.txt',help='vocab path')
+    parser.add_argument('--code_length', type=int, default=16,help='the dimension of sentence features')
+    args = parser.parse_args()
+
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/test.txt'
-    filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
+    # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
+    filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/info.txt'
+
+    logpath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/"  
+    log = get_logger3('add_embedding', logpath)
+
     add_embedding(args, filepath)
