@@ -12,7 +12,7 @@ def get_arguments():
     '''
     parser.add_argument('--data', type=str, required=True, help='path of raw data')
     parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
-    parser.add_argument('--balance', choices=["up", "down", "none"], default='none',type=str, required=True, help='up or down or none')
+    parser.add_argument('--balance', choices=["up", "down", "none"], default='none',type=str, help='up or down or none')
     parser.add_argument("--sampling_seed", default=10, type=int, help="Random seed for sampling data")
     # parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
     parser.add_argument("--classification_model_seed", default=1, type=int, help="Random seed for initializing classification model")
@@ -46,10 +46,10 @@ def get_arguments():
 
     # for finetune.py
     # parser.add_argument("--UIE_batch_size", default=16, type=int, help="Batch size per GPU/CPU for training.")
-    parser.add_argument("--UIE_learning_rate", default=1e-5, type=float, help="The initial learning rate for Adam.")
+    parser.add_argument("--UIE_learning_rate", default=1e-6, type=float, help="The initial learning rate for Adam.")
     parser.add_argument("--train_path", default=None, type=str, help="The path of train set.")
     parser.add_argument("--dev_path", default=None, type=str, help="The path of dev set.") 
-    parser.add_argument("--save_dir", default='./checkpoint', type=str, help="The output directory where the model checkpoints will be written.")
+    parser.add_argument("--save_dir", default='./checkpoint/20230113', type=str, help="The output directory where the model checkpoints will be written.")
     # parser.add_argument("--max_seq_len", default=512, type=int, help="The maximum input sequence length, Sequences longer than this will be split automatically.")
     parser.add_argument("--UIE_num_epochs", default=100, type=int, help="Total number of training epochs to perform.")
     parser.add_argument("--seed", default=1000, type=int, help="Random seed for initialization")
