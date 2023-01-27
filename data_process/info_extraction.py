@@ -23,10 +23,10 @@ def sentence_cut(filted_data: list) -> list:
     
     for i in range(len(filted_data)):
     # for i in range(10):
-        if filted_data[i]['raw_text'] in processed_sentence:
+        if filted_data[i]['number'] in processed_sentence:
             continue
 
-        processed_sentence.append(filted_data[i]['raw_text'])
+        processed_sentence.append(filted_data[i]['number'])
 
         split_rule = '[。？！]'
         # filter all empty string, and split the raw string based on "。？！"
@@ -35,7 +35,7 @@ def sentence_cut(filted_data: list) -> list:
         
         if result_list:
             for sub_str in sub_str_list:
-                sample = {"content": sub_str, "raw_text": filted_data[i]['raw_text']}
+                sample = {"content": sub_str, "raw_text": filted_data[i]['raw_text'], "number": filted_data[i]['number']}
 
                 for result_dict in result_list:
                     result = result_dict['text']
@@ -60,6 +60,7 @@ def sentence_cut(filted_data: list) -> list:
             for sub_str in sub_str_list:
                 sample = {
                     "content": sub_str,
+                    "number": filted_data[i]['number'],
                     "raw_text": filted_data[i]['raw_text'],
                     "result_list": [{"text": "", "start": 0, "end": 0}],
                     "prompt": ""
@@ -84,7 +85,8 @@ def data_process(data_list: list):
     return train_data, dev_data, test_data
 
 def dataset_generate():
-    path = '/data/pzy2022/project/eccnlp_local/info_extraction/result_data_TextRNN.txt'
+    # path = '/data/pzy2022/project/eccnlp_local/info_extraction/result_data_TextRNN.txt'
+    path = '/data/pzy2022/project/eccnlp_local/info_extraction/result_data2.0_TextRCNN2022_12_21_15_37.txt'
     data_list = read_file(path)
     filted_data = data_filter(data_list)
     cutted_data = sentence_cut(filted_data)
