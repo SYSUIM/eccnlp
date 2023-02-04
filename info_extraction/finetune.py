@@ -25,9 +25,10 @@ from paddlenlp.transformers import AutoTokenizer
 from paddlenlp.metrics import SpanEvaluator
 from paddlenlp.utils.log import logger
 
-from model import UIE
-from evaluate import evaluate
-from utils import set_seed, convert_example, reader, MODEL_MAP
+from info_extraction.model import UIE
+# from model import UIE
+from info_extraction.evaluate import evaluate
+from info_extraction.utils import set_seed, convert_example, reader, MODEL_MAP
 
 # import paddle.distributed as dist
 
@@ -39,16 +40,16 @@ def do_train(args, train_data, dev_data):
 
     set_seed(args.seed)
 
-    resource_file_urls = MODEL_MAP[args.model]['resource_file_urls']
+    resource_file_urls = MODEL_MAP[args.UIE_model]['resource_file_urls']
 
     logger.info("Downloading resource files...")
     for key, val in resource_file_urls.items():
-        file_path = os.path.join(args.model_dir, args.model, key)
+        file_path = os.path.join(args.model_dir, args.UIE_model, key)
         if not os.path.exists(file_path):
-            path = get_path_from_url(val, args.model)
+            path = get_path_from_url(val, args.UIE_model)
     
-    tokenizer = AutoTokenizer.from_pretrained(args.model_dir + args.model)
-    model = UIE.from_pretrained(args.model_dir + args.model)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_dir + args.UIE_model)
+    model = UIE.from_pretrained(args.model_dir + args.UIE_model)
 
     # train_ds = load_dataset(reader,
     #                         data_path=args.train_path,
@@ -73,14 +74,14 @@ def do_train(args, train_data, dev_data):
                 max_seq_len=args.max_seq_len))
 
     train_batch_sampler = paddle.io.BatchSampler(dataset=train_ds,
-                                                 batch_size=args.batch_size,
+                                                 batch_size=args.UIE_batch_size,
                                                  shuffle=True)
     train_data_loader = paddle.io.DataLoader(dataset=train_ds,
                                              batch_sampler=train_batch_sampler,
                                              return_list=True)
 
     dev_batch_sampler = paddle.io.BatchSampler(dataset=dev_ds,
-                                               batch_size=args.batch_size,
+                                               batch_size=args.UIE_batch_size,
                                                shuffle=False)
     dev_data_loader = paddle.io.DataLoader(dataset=dev_ds,
                                            batch_sampler=dev_batch_sampler,
@@ -93,7 +94,7 @@ def do_train(args, train_data, dev_data):
     if paddle.distributed.get_world_size() > 1:
         model = paddle.DataParallel(model)
 
-    optimizer = paddle.optimizer.AdamW(learning_rate=args.learning_rate,
+    optimizer = paddle.optimizer.AdamW(learning_rate=args.UIE_learning_rate,
                                        parameters=model.parameters())
 
     criterion = paddle.nn.BCELoss()
@@ -104,7 +105,7 @@ def do_train(args, train_data, dev_data):
     best_step = 0
     best_f1 = 0
     tic_train = time.time()
-    for epoch in range(1, args.num_epochs + 1):
+    for epoch in range(1, args.UIE_num_epochs + 1):
         for batch in train_data_loader:
             input_ids, token_type_ids, att_mask, pos_ids, start_ids, end_ids = batch
             start_prob, end_prob = model(input_ids, token_type_ids, att_mask,

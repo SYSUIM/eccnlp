@@ -22,8 +22,8 @@ from paddlenlp.transformers import AutoTokenizer
 from paddlenlp.metrics import SpanEvaluator
 from paddlenlp.utils.log import logger
 
-from model import UIE
-from utils import convert_example, reader, unify_prompt_name
+from info_extraction.model import UIE
+from info_extraction.utils import convert_example, reader, unify_prompt_name
 
 
 @paddle.no_grad()
