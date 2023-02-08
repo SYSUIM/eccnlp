@@ -9,7 +9,7 @@ import pandas as pd
 import logging
 import math
 import argparse
-from rank_data_process import form_predict_input_list, parse_labeled_data_file, get_logger3
+from rank_data_process import form_predict_input_list, parse_labeled_data_file, get_logger3, read_list
 tf.disable_v2_behavior()
 
 #此程序用于对uie抽取出原因至少有两个的样本排序，并在总数据中写入字典rerank
@@ -21,29 +21,29 @@ def add_reason(o1,reason_id,reason_list):
         reason_id+=1
     return reason_id, o
 
-def add_rerank(args, rerank_list, log):
+def add_rerank(args, rerank_list, merged_list, log):
     now=0
     res=[]
     lenth=len(rerank_list)
-    with open(args.path_of_merged_reasons, "r", encoding="utf8") as f:
-        lines = f.readlines()
-        for i in range(len(lines)):           
-            data_pre = eval(lines[i])           
-            data=data_pre["output"][0]
-            if len(data) == 0:#uie预测无原因
-                continue
-            all_reason_list=[]
-            if len(data[args.type]) == 0: #业绩归因为空
-                all_reason_list.append(data[args.type])
-            elif len(data[args.type]) < 2:#只有一个原因
-                all_reason_list.append(data[args.type][0]["text"])
-            else:
-                for i in rerank_list[now]:
-                    all_reason_list.append(i)
-                now += 1
-            data_pre["rerank"]=all_reason_list
-            res.append(data_pre)
-            log.info(data_pre)               
+    # with open(args.path_of_merged_reasons, "r", encoding="utf8") as f:
+    lines = merged_list
+    for i in range(len(lines)):           
+        data_pre = eval(lines[i])           
+        data=data_pre["output"][0]
+        if len(data) == 0:#uie预测无原因
+            continue
+        all_reason_list=[]
+        if len(data[args.type]) == 0: #业绩归因为空
+            all_reason_list.append(data[args.type])
+        elif len(data[args.type]) < 2:#只有一个原因
+            all_reason_list.append(data[args.type][0]["text"])
+        else:
+            for i in rerank_list[now]:
+                all_reason_list.append(i)
+            now += 1
+        data_pre["rerank"]=all_reason_list
+        res.append(data_pre)
+        log.info(data_pre)               
     return res
 
 def predict(all_list, reasons):
@@ -81,17 +81,20 @@ def predict(all_list, reasons):
 
 if __name__ == "__main__":
     logpath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/"
-    log = get_logger3("predict-M15-0113", logpath)
+    log = get_logger3("predict-M19-main", logpath)
 
     parser = argparse.ArgumentParser(description='predict')
-    parser.add_argument('--MODEL_PATH', type=str, default='./data/data_model/model_v15_lambdarank.ckpt',help='rerank model path')
+    parser.add_argument('--MODEL_PATH', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v19_lambdarank.ckpt',help='rerank model path')
     parser.add_argument('--type', type=str, default='业绩归因',help='type of reason')
-    parser.add_argument('--path_of_merged_reasons', type=str, default='./data/res_log/2.0_2023-01-15_merge_0113.txt',help='path of merged reasons')
+    # parser.add_argument('--path_of_merged_reasons', type=str, default='./data/res_log/2.0_2023-01-15_merge_0113.txt',help='path of merged reasons')
     parser.add_argument('--reason_num', type=int, default=10,help='reason number')
     parser.add_argument('--f_num', type=int, default=2, help='feature number')
     args = parser.parse_args()
 
-    all_list, reasons = form_predict_input_list(args)
+    filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2023-01-15_merge.txt'
+    merged_list = read_list(filepath)
+
+    all_list, reasons = form_predict_input_list(args, merged_list)
     rerank_list = predict(all_list, reasons)
-    res = add_rerank(args, rerank_list, log)
+    res = add_rerank(args, rerank_list, merged_list, log)
 

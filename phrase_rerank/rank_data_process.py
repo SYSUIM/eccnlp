@@ -8,6 +8,15 @@ import operator
 import argparse
 from datetime import datetime
 
+def read_list(filepath):
+    with open(filepath, "r", encoding="utf8") as f:
+        lines = f.readlines()
+    return lines
+
+def print_list(alist, log):
+    for i in alist:
+        log.info(i)
+
 def get_logger(name,logpath):
     logger = logging.getLogger(name)
     filename = f'{datetime.now().date()}_{name}.log'
@@ -96,30 +105,6 @@ def form_input_vector(all_rows,cnt):
         y.append(line_in_all)
     return y
 
-#加入构建的负样本
-def generate_negative_sample_and_addin(args,all,list_len):
-    alllist=[]
-    i=0
-    while i < len(all):
-        alllist.append(all[i])
-        t=1
-        now_line=i
-        while (all[now_line][1]==all[(now_line+t)%list_len][1]):
-            t+=1
-            i+=1
-            alllist.append(all[i])
-        #如果UIE提取的原因少于5个，随机生成缺少的负样本
-        #负样本特征向量1范围（0，0.04），特征向量2范围（0，0.01）
-        if args.reason_num - t >0:
-            for j in range( 1 , args.reason_num - t + 1 ) :
-                tmp=[]
-                tmp.append(-1)
-                tmp.append(all[now_line][1])
-                tmp.append(random.random()*0.04)
-                tmp.append(random.random()*0.01)
-                alllist.append(tmp)
-        i=i+1
-    return alllist
 
 #构建input格式  eg:  -1 qid:0 1:0.1 2:0.09
 def form_input_data(args, alllist, reason_list):
@@ -165,83 +150,81 @@ def read_word(word_fath):
     return vocab
 
 #构建模型所需的数据,返回 全部数据列表，训练数据列表，测试数据列表，csv所需要的content和lab列表
-def form_input_list(args):
-    vocab = read_word("./data/test/2022-12-24_word.log")
-    with open(args.path_of_merged_reasons, "r", encoding="utf8") as f:
-        all_rows=[]  
-        pro_cnt=[]  #存词库中的词在原因中出现的次数
-        reason_list = []
-        key_num=-1  #标记quary
-        lines = f.readlines()
-        for i in range(len(lines)):
-            if lines[i][0] != '{':
-                continue
-            data_pre = eval(lines[i])
-            if len(data_pre["output"][0]) == 0:  # 预测为无因果
-                continue
-            data=data_pre["output"][0]
-            # print(data)#{'业绩归因': [{'text': '“调整年”', 'start': 3, 'end': 8, 'probability': 0.6058174246136119}]}
-            elem_num=len(data[args.type])        
-            if elem_num>1:           # 预测出的因果不少于1个
-                lab_txt=data_pre["result_list"][0][0]["text"] #当前quary下管院标记的原因
-                if len(lab_txt) != 0:
-                    key_num+=1 #合法quary
-                    line_elem=[]
-                    write_reason(args, data, reason_list)                   
-                    for j in data[args.type]:
-                        elem=[]#当前quary 下每一个原因的特征向量
-                        tmp=string_similar(j["text"],lab_txt) #管院标记原因与UIE提取原因的相似度
-                        #elem 每一维的含义
-                        # 第0维：key_num  第一维：相似度  第二维：概率  第三维：词出现的次数
-                        # 第四维：label（1，-1）  第5维：归一后的出现次数
-                        cot = calculate_cot(j,vocab)
-                        elem.extend([key_num, tmp, j["probability"], cot])
-                        elem = elem + j["s_before"] + j["s_after"]              
-                        pro_cnt.append(cot)
-                        line_elem.append(elem)
-                    all_rows = generate_label(line_elem,all_rows) 
-                    # print(all_rows)
-        cnt = normalize(pro_cnt)
-        list_len=len(all_rows)
-        all = form_input_vector(all_rows,cnt)
-        all_list,train_list,test_list,reason_of_test = form_input_data(args, all, reason_list)
-    return all_list, train_list, test_list, reason_of_test
-
-def form_predict_input_list(args):
-    vocab = read_word("./data/test/2022-12-24_word.log")
-    with open(args.path_of_merged_reasons, "r", encoding="utf8") as f:
-        all_rows=[]  
-        pro_cnt=[]  #存词库中的词在原因中出现的次数
-        key_num=-1  #标记quary
-        lines = f.readlines()
-        reasons=[] 
-        for i in range(len(lines)):
-            if lines[i][0] != '{':
-                continue
-            data_pre = eval(lines[i])
-            if len(data_pre["output"][0]) == 0:  # 预测为无因果
-                continue
-            data=data_pre["output"][0]
-            elem_num=len(data[args.type])                   
-            if elem_num>1:           # 预测出的因果不少于1个
-                lab_txt=data_pre["result_list"][0][0]["text"] #当前quary下管院标记的原因
-                # if len(lab_txt) != 0:
-                key_num+=1 #合法quary qid
-                line_elem=[]             
+def form_input_list(args, merged_list):
+    vocab = read_word("/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.log")
+    all_rows=[]  
+    pro_cnt=[]  #存词库中的词在原因中出现的次数
+    reason_list = []
+    key_num=-1  #标记quary
+    lines = merged_list
+    for i in range(len(lines)):
+        if lines[i][0] != '{':
+            continue
+        data_pre = eval(lines[i])
+        if len(data_pre["output"][0]) == 0:  # 预测为无因果
+            continue
+        data=data_pre["output"][0]
+        # print(data)#{'业绩归因': [{'text': '“调整年”', 'start': 3, 'end': 8, 'probability': 0.6058174246136119}]}
+        elem_num=len(data[args.type])        
+        if elem_num>1:           # 预测出的因果不少于1个
+            lab_txt=data_pre["result_list"][0][0]["text"] #当前quary下管院标记的原因
+            if len(lab_txt) != 0:
+                key_num+=1 #合法quary
+                line_elem=[]
+                write_reason(args, data, reason_list)                   
                 for j in data[args.type]:
-                    reasons.append(j["text"])
                     elem=[]#当前quary 下每一个原因的特征向量
                     tmp=string_similar(j["text"],lab_txt) #管院标记原因与UIE提取原因的相似度
+                    #elem 每一维的含义
+                    # 第0维：key_num  第一维：相似度  第二维：概率  第三维：词出现的次数
+                    # 第四维：label（1，-1）  第5维：归一后的出现次数
                     cot = calculate_cot(j,vocab)
-                    elem.extend([key_num, tmp, j["probability"], cot])  
-                    elem = elem + j["s_before"] + j["s_after"]                  
+                    elem.extend([key_num, tmp, j["probability"], cot])
+                    elem = elem + j["s_before"] + j["s_after"]              
                     pro_cnt.append(cot)
                     line_elem.append(elem)
                 all_rows = generate_label(line_elem,all_rows) 
-        cnt = normalize(pro_cnt)
-        list_len=len(all_rows)
-        all = form_input_vector(all_rows,cnt)
-        all_list,train_list,test_list,useless_reason= form_input_data(args, all, reasons)
+                # print(all_rows)
+    cnt = normalize(pro_cnt)
+    list_len=len(all_rows)
+    all = form_input_vector(all_rows,cnt)
+    all_list,train_list,test_list,reason_of_test = form_input_data(args, all, reason_list)
+    return all_list, train_list, test_list, reason_of_test
+
+def form_predict_input_list(args, merged_list):
+    vocab = read_word("/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.log")
+    all_rows=[]  
+    pro_cnt=[]  #存词库中的词在原因中出现的次数
+    key_num=-1  #标记quary
+    lines = merged_list
+    reasons=[] 
+    for i in range(len(lines)):
+        if lines[i][0] != '{':
+            continue
+        data_pre = eval(lines[i])
+        if len(data_pre["output"][0]) == 0:  # 预测为无因果
+            continue
+        data=data_pre["output"][0]
+        elem_num=len(data[args.type])                   
+        if elem_num>1:           # 预测出的因果不少于1个
+            lab_txt=data_pre["result_list"][0][0]["text"] #当前quary下管院标记的原因
+            # if len(lab_txt) != 0:
+            key_num+=1 #合法quary qid
+            line_elem=[]             
+            for j in data[args.type]:
+                reasons.append(j["text"])
+                elem=[]#当前quary 下每一个原因的特征向量
+                tmp=string_similar(j["text"],lab_txt) #管院标记原因与UIE提取原因的相似度
+                cot = calculate_cot(j,vocab)
+                elem.extend([key_num, tmp, j["probability"], cot])  
+                elem = elem + j["s_before"] + j["s_after"]                  
+                pro_cnt.append(cot)
+                line_elem.append(elem)
+            all_rows = generate_label(line_elem,all_rows) 
+    cnt = normalize(pro_cnt)
+    list_len=len(all_rows)
+    all = form_input_vector(all_rows,cnt)
+    all_list,train_list,test_list,useless_reason= form_input_data(args, all, reasons)
     return all_list, reasons
 
 def cmp(x,y):
@@ -310,6 +293,8 @@ if __name__ == "__main__":
 
     logpath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/transfer/" 
 
+    filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2023-01-15_merge.txt'
+    merged_list = read_list(filepath)
 
     if (args.usage == "train"):
         log1=get_logger('train', logpath)
@@ -317,7 +302,7 @@ if __name__ == "__main__":
         log3=get_logger('all_data', logpath)
         log4=get_logger('reason_of_test', logpath)
 
-        all_list, train_list, test_list, reason_of_test = form_input_list(args)
+        all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list)
 
         for i in range(len(train_list)):
             log1.info(train_list[i]) 
@@ -332,7 +317,7 @@ if __name__ == "__main__":
         log5=get_logger('all_predict_data', logpath)
         log6=get_logger('all_predict_reasons', logpath)
         
-        all_list, reasons = form_predict_input_list(args)
+        all_list, reasons = form_predict_input_list(args, merged_list)
 
         for i in range(len(all_list)):
             log5.info(all_list[i]) 
