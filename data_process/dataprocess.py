@@ -9,7 +9,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 
 # parser = argparse.ArgumentParser(description='Data Processing')
 # parser.add_argument('--data', type=str, required=True, help='path of raw data')
-# parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
+# parser.add_argument('--min_length', default=5, type=int, help='not less than 0')
 # parser.add_argument('--train_size', default=0.6, type=float, help='ratio of train data')
 # parser.add_argument('--val_size', default=0.2, type=float, help='ratio of train data')
 # parser.add_argument('--test_size', default=0.2, type=float, help='ratio of train data')
@@ -171,7 +171,7 @@ def train_dataset(data, args):
             for sentence in Acntet_cut:
                 sentence = re.sub('\\n|\?|&lt;|br|&gt;','', str(sentence))
                 #设置切分后最小长度
-                if len(sentence) > int(args.min_length):
+                if len(sentence) > args.min_length:
                     data_dict = {'number':'','content': '', 'raw_text':'', 'label': 0, 'result_list': [{"text": '', "start":None , "end":None}], 'prompt': ''}
                     data_dict['number'] = row['No']
                     data_dict['content'] = sentence
@@ -189,7 +189,8 @@ def train_dataset(data, args):
                                 result_dict['start'] = sentence.index(str(row['原因归属' + str(i)]))
                                 result_dict['end'] = result_dict['start'] + len(row['原因归属' + str(i)])
                     data_dict['result_list'] = [result_dict]
-                    data_dict['prompt'] = row['业绩归因问题类型']
+                    if str(row['业绩归因问题类型']) != 'nan':
+                        data_dict['prompt'] = row['业绩归因问题类型']
                     dataset_list.append(data_dict)
     logging.info('数据集总量：'+ str(len(dataset_list)))
     return dataset_list
@@ -205,7 +206,7 @@ def predict_dataset(args):
             split_rule = '[。？！]'
             Acntet_cut = re.split(split_rule,row['Acntet'])
             for sentence in Acntet_cut:
-                sentence = re.sub('[\n,?]','', str(sentence))
+                sentence = re.sub('\\n|\?|&lt;|br|&gt;','', str(sentence))
                 #设置切分后最小长度
                 if len(sentence) > args.min_length:
                     data_dict = {'number':'', 'content': '', 'raw_text':'', 'label': 0, 'result_list': [{"text": '', "start":None , "end":None}], 'prompt': ''}
