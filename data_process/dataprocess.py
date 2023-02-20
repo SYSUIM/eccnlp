@@ -156,7 +156,7 @@ def re_pattern2(args):
     logging.info("其中正确过滤数量："+ str(Len1-Len2))
     logging.info("Precision："+ str(round((Len1-Len2)/Len1,4)))
 
-    Codesdf=Codesdf.drop(columns=['Length'])
+    # Codesdf=Codesdf.drop(columns=['Length'])
     return Codesdf
 
 

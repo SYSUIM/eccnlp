@@ -19,6 +19,10 @@ def re_pattern1(args):
     log_filename = './log/' + '3.1_'+time.strftime('%m.%d_%H.%M', time.localtime()) + '.log'
     logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(message)s')
 
+    def Prediction(Condition):
+        Len1 = len(Codesdf[Codesdf['Predict_非业绩归因'] == 1])
+        logging.info("增加{}后过滤数量:{}".format(Condition, Len1))
+
     # 定义业绩归因表达式
     Attr_pattern = '业绩|利润|亏损|损失|收入|绩效|竞争力|成本|盈利|影响|利于|发展|竞争力'  # 放宽标准则仅包括'影响|利于|发展|竞争力'
 
@@ -28,12 +32,14 @@ def re_pattern1(args):
             & (Codesdf['Length'] <= 30), 'Predict_非业绩归因'] = 1
     Codesdf.loc[(Codesdf['Length'] < 20) & (
         Codesdf['Acntet'].str.contains(Attr_pattern) == 0), 'Predict_非业绩归因'] = 1
+    Prediction("拒不回答类型")
 
     # 无关问题：股市、薪酬、信息披露
     pattern1 = '分红|派息|股权|利润分配|股份|股价|股市|市胆率|PE|不良率|大盘'
     Codesdf.loc[(Codesdf['Qcntet'].str.contains(pattern1) == 1) & (
         Codesdf['Acntet'].str.contains(Attr_pattern) == 0), 'Predict_非业绩归因'] = 1
     Codesdf.loc[(Codesdf['Qcntet'].str.contains('薪酬|信息披露') == 1), 'Predict_非业绩归因'] = 1
+    Prediction("无关问题")
 
     # 答非所问
     Codesdf.loc[(Codesdf['Acntet'].str.contains('感谢|公告|报告|披露|回复|回答') == 1)
@@ -45,15 +51,20 @@ def re_pattern1(args):
     pattern3 = '不*回答问题|回避问题|官话|答非所问|没有回[复答]|态度问题'
     Codesdf.loc[(Codesdf['Qcntet'].str.contains(pattern3) == 1) & (
         Codesdf['Acntet'].str.contains(Attr_pattern) == 0), 'Predict_非业绩归因'] = 1
+    Prediction("答非所问")
 
     pattern4= "未来|计划|将|预计|下一年"
     Codesdf.loc[(Codesdf['Qcntet'].str.contains(pattern4) == 1) & (
         Codesdf['Acntet'].str.contains(Attr_pattern) == 0), 'Predict_非业绩归因'] = 1
     # Codesdf.loc[(Codesdf['Qcntet'].str.contains(pattern4) == 1) , 'Predict_非业绩归因'] = 1
+    Prediction("未来规划")
 
     pattern5= "(没有|暂无)[^\r\n\t\f\v，,。？！]*影响"
     Codesdf.loc[(Codesdf['Qcntet'].str.contains(pattern5) == 1) , 'Predict_非业绩归因'] = 1
+    Prediction("非归因")
 
+    len1 = len(Codesdf[Codesdf['Predict_非业绩归因'] == 1])
+    logging.info("共过滤非业绩归因回答数量："+str(len1))
     return Codesdf
 
 def re_pattern2(args):
@@ -62,6 +73,10 @@ def re_pattern2(args):
     log_filename = './log/' + '3.2_'+time.strftime('%m.%d_%H.%M', time.localtime()) + '.log'
     logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(message)s')
 
+    def Prediction(Condition):
+        Len1 = len(Codesdf[Codesdf['Predict_非业绩归因'] == 1])
+        logging.info("增加{}后过滤数量:{}".format(Condition, Len1))
+
     # 定义业绩归因表达式
     Attr_pattern = '业绩|利润|亏损|损失|收入|绩效|竞争力|成本|盈利|影响|利于|发展|竞争力'  # 放宽标准则仅包括'影响|利于|发展|竞争力'
 
@@ -71,12 +86,14 @@ def re_pattern2(args):
             & (Codesdf['Length'] <= 30), 'Predict_非业绩归因'] = 1
     Codesdf.loc[(Codesdf['Length'] < 20) & (
         Codesdf['Acntet'].str.contains(Attr_pattern) == 0), 'Predict_非业绩归因'] = 1
+    Prediction("拒不回答类型")
 
     # 无关问题：股市、薪酬、信息披露
     pattern1 = '分红|派息|股权|利润分配|股份|股价|股市|市胆率|PE|不良率|大盘'
     Codesdf.loc[(Codesdf['Qcntet'].str.contains(pattern1) == 1) & (
         Codesdf['Acntet'].str.contains(Attr_pattern) == 0), 'Predict_非业绩归因'] = 1
     Codesdf.loc[(Codesdf['Qcntet'].str.contains('薪酬|信息披露') == 1), 'Predict_非业绩归因'] = 1
+    Prediction("无关问题")
 
     # 答非所问
     Codesdf.loc[(Codesdf['Acntet'].str.contains('感谢|公告|报告|披露|回复|回答') == 1)
@@ -88,15 +105,21 @@ def re_pattern2(args):
     pattern3 = '不*回答问题|回避问题|官话|答非所问|没有回[复答]|态度问题'
     Codesdf.loc[(Codesdf['Qcntet'].str.contains(pattern3) == 1) & (
         Codesdf['Acntet'].str.contains(Attr_pattern) == 0), 'Predict_非业绩归因'] = 1
+    Prediction("答非所问")
 
     pattern4= "未来|计划|将|预计|下一年"
     # Codesdf.loc[(Codesdf['Qcntet'].str.contains(pattern4) == 1) & (
     #     Codesdf['Acntet'].str.contains(Attr_pattern) == 0), 'Predict_非业绩归因'] = 1
     Codesdf.loc[(Codesdf['Qcntet'].str.contains(pattern4) == 1) , 'Predict_非业绩归因'] = 1
+    Prediction("未来规划")
 
     pattern5= "(没有|暂无)[^\r\n\t\f\v，,。？！]*影响"
     Codesdf.loc[(Codesdf['Qcntet'].str.contains(pattern5) == 1) , 'Predict_非业绩归因'] = 1
+    Prediction("非归因")
 
+    len1 = len(Codesdf[Codesdf['Predict_非业绩归因'] == 1])
+    logging.info("共过滤非业绩归因回答数量："+str(len1))
+    
     return Codesdf
 
 # 生成预测数据集
