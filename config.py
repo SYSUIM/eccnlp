@@ -11,7 +11,7 @@ def get_arguments():
     here are parameters for Chinese Text Classification
     '''
     parser.add_argument('--data', type=str, required=True, help='path of raw data')
-    parser.add_argument('--min_length', default=5, type=str, help='not less than 0')
+    parser.add_argument('--min_length', default=5, type=int, help='not less than 0')
     parser.add_argument('--balance', choices=["up", "down", "none"], default='none',type=str, help='up or down or none')
     parser.add_argument('--balance', choices=["up", "down", "none"], default='none',type=str, required=True, help='up or down or none')
     parser.add_argument('--train_size', default=0.6, type=float, help='ratio of train data')
