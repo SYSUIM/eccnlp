@@ -34,6 +34,14 @@ def ensemble_classification_model(train_list, dev_list, test_list, args):
     embedding = 'pre_trained'
     if args.embedding == 'random':
         embedding = 'random'
+    # model_name = args.model  # 'TextRCNN'  # TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer
+    # if model_name == 'Transformer':
+    #     args.learning_rate = 5e-4
+    # if model_name == 'FastText':
+    #     from item_classification.utils_fasttext import build_dataset, build_iterator, get_time_dif, get_utils
+    #     embedding = 'random'
+    # else:
+    #     from item_classification.utils import build_dataset, build_iterator, get_time_dif, get_utils
 
     embeddings_pretrained = get_utils(train_list)
 
@@ -61,6 +69,19 @@ def ensemble_classification_model(train_list, dev_list, test_list, args):
         logging.info('-'*30 + str(i) + ' ' + model_name + '-'*30)
         x = import_module('item_classification.model.' + model_name)
         config = x.Config(train_list, dev_list, test_list, embeddings_pretrained, embedding, args)
+        # np.random.seed(args.classification_model_seed)
+        # torch.manual_seed(args.classification_model_seed)
+        # torch.cuda.manual_seed_all(args.classification_model_seed)
+        # torch.backends.cudnn.deterministic = True  # 保证每次结果一样
+
+        # start_time = time.time()
+        # logging.info("Loading data...")
+        # vocab, train_data, dev_data, test_data = build_dataset(config, args.word)
+        # train_iter = build_iterator(train_data, config)
+        # dev_iter = build_iterator(dev_data, config)
+        # test_iter = build_iterator(test_data, config)
+        # time_dif = get_time_dif(start_time)
+        # logging.info("Time usage:{}".format(time_dif))
 
         # train
         config.n_vocab = len(vocab)
@@ -84,4 +105,24 @@ def ensemble_classification_model(train_list, dev_list, test_list, args):
     logging.info('-'*30 + 'EnsembleModels' + '-'*30)
     evaluate(raw_labels, predict_labels, test=True)    
 
-    # return predict_labels
+
+
+    # predict
+    predict_data = [i for i in test_data]
+    predict_iter = build_iterator(predict_data, config)
+
+    def predict(config, model, predict_iter):
+        model.load_state_dict(torch.load(config.save_path))
+        model.eval()
+        predict_all = np.array([], dtype=int)
+        with torch.no_grad():
+            for texts, labels in predict_iter:
+                outputs = model(texts)
+                predic = torch.max(outputs.data, 1)[1].cpu().numpy()
+                predict_all = np.append(predict_all, predic)
+
+        return predict_all
+    
+    predict_all = predict(config, model, predict_iter)
+
+    return predict_all
