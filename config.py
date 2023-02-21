@@ -1,5 +1,14 @@
 import argparse
 import time
+import logging
+
+
+logging.basicConfig(
+    level=logging.INFO,
+     format='%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s',
+     datefmt='%Y-%m-%d %H:%M:%S'
+     )
+
 
 def get_arguments():
     # example for time_stamp: '2022_12_05_15_36'
@@ -87,6 +96,8 @@ def get_arguments():
     parser.add_argument('--f_num', type=int, default=2, help='feature number')
 
     args = parser.parse_args()
+    args_message = '\n'.join([f'{k:<20}: {v}' for k, v in vars(args).items()])
+    logging.info(f'\n{args_message}')
 
     return args
 
