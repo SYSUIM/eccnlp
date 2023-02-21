@@ -1,6 +1,10 @@
 import os
+import re
 import logging
+
 import numpy as np
+import pandas as pd
+from sklearn.metrics import classification_report
 from sklearn.model_selection import StratifiedShuffleSplit
 
 logging.basicConfig(
@@ -14,12 +18,64 @@ def read_list_file(path: str) -> list:
     with open(path, 'r') as f:
         for line in f:
             data_list.append(eval(line.strip('\n'), {'nan': ''}))
-    logging.info(f'read data_list DONE. Length: {len(data_list)}')
+    logging.info(f'read data_list DONE. Length of {path}: {len(data_list)}')
 
     return data_list
 
+def evaluate(true_list: list, predict_list: list):
+    predict_index_list, true_index_list = {}, []
+    for predict in predict_list:
+        predict_index_list[predict['number']] = predict['rerank']
+
+    for true in true_list:
+        true_index_list.append(true['number'])
+
+    # ensure unduplicated list be created, otherwise exit
+    if len(predict_index_list) != len(set(predict_index_list)):
+        print('len(predict_index_list):', len(predict_index_list))
+        print('len(set(predict_index_list)):', len(set(predict_index_list)))
+        exit(0)
+
+    proceseed_num = []
+    list1, list2 = [], []
+    for true in true_list:
+        index = true['number']
+        if index in proceseed_num:
+            continue
+        if index in predict_index_list.keys():
+            true_flag, predict_flag = None, None
+            proceseed_num.append(index)
+            if not true['prompt']:
+                true_flag = 'negetive'
+                if not predict_index_list[index][0]:
+                    predict_flag = 'negetive'
+                else:
+                    predict_flag = 'positive'
+            else:
+                true_flag = 'positive'
+                for reason in true['result_list']:
+                    if (str(predict_index_list[index][0]) in reason['text']) or (reason['text'] in str(predict_index_list[index][0])):
+                        predict_flag = 'positive'
+                        break
+                if predict_flag is None:
+                    predict_flag = 'negetive'
+            list1.append(true_flag)
+            list2.append(predict_flag)
+
+    classification_report_actual = classification_report(list1, list2)
+    logging.info(f'\n{classification_report_actual}')
+
+
 '''生成分类模型数据集'''
 def split_dataset(dataset,args):
+    '''
+    Split dataset into train, validation(if you want) and test.
+    The parameters could be defined in args(initalized in config.py):
+        1. test_size: the size of test dataset. 
+        2. val_size: the size of validation dataset.
+        3. train_size: the size of train dataset.
+        NOTICE: The sum of three above needs to be 1, otherwise train_size = 1 - test_size - val_dataset. 
+    '''
     content_list = []
     label_list = []
 
@@ -63,5 +119,13 @@ def split_dataset(dataset,args):
     return train_dict, val_dict, test_dict
 
 if __name__ == '__main__':
-    path = '/data/pzy2022/project/eccnlp/data_process/after_classification_data3.1.txt'
-    read_list_file(path)
+    # test for read_list_file
+    # path = '/data/pzy2022/project/eccnlp/data_process/after_classification_data3.1.txt'
+    # read_list_file(path)
+
+    # test for evaluate
+    # true_path = '/data/pzy2022/project/eccnlp_local/2.0_raw_dict.txt'
+    # predict_path = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2023-01-15_predict-M15-0113_test.txt'
+    # evaluate(read_list_file(true_path), read_list_file(predict_path))
+
+    pass
