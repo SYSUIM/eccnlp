@@ -80,7 +80,7 @@ def split_dataset(dataset,args):
     label_list = []
 
     for i in range(len(dataset)):
-        content, label = dataset[i]['content'],dataset[i]['label']
+        content, label = dataset[i]['content'], dataset[i]['label']
         content = re.sub("[^\u4e00-\u9fa5]", "", str(content))
         if content:           # 去除只保留汉字后出现的空值
             content_list.append(content)

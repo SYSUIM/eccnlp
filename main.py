@@ -2,6 +2,8 @@ import argparse
 import config
 import logging
 
+from utils import read_list_file
+
 # data preprocess
 from data_process.dataprocess import re_pattern1, re_pattern2, train_dataset, split_dataset, classification_dataset
 
@@ -12,7 +14,7 @@ from item_classification.ensemble_models import ensemble_classification_model
 
 # information extraction
 from info_extraction.finetune import do_train
-from data_process.info_extraction import dataset_generate
+from data_process.info_extraction import dataset_generate_train
 
 
 logging.basicConfig(
@@ -51,7 +53,7 @@ def text_classification(args):
 def ensemble_text_classification(args):
     data = re_pattern1(args)
     dataset = train_dataset(data, args)
-    train_dict,val_dict,test_dict = split_dataset(dataset,args)
+    train_dict, val_dict, test_dict = split_dataset(dataset,args)
     train_list, dev_list, test_list, train_dict, val_dict, test_dict = classification_dataset(train_dict,val_dict,test_dict, args)
     predict_test = ensemble_classification_model(train_list, dev_list, test_list, args)
     # ensemble_single_model(train_list, dev_list, test_list, args)
@@ -68,14 +70,19 @@ def ensemble_text_classification(args):
 
 
 def run_information_extraction(args, data):
-    train_data, dev_data, test_data = dataset_generate()
+    train_data, dev_data, test_data = dataset_generate_train(args, data)
+    logging.info(f'train_data: {len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
     do_train(args, train_data, dev_data)
     return
 
 if __name__ == '__main__':
     args = config.get_arguments()
+
+    # waiting for re filter...
+
+    dataset = read_list_file(args.data)
     # all_dict = text_classification(args)
     all_dict = ensemble_text_classification(args)
-    logging.info('ensemble_text_classification completed.')
-    print(len(all_dict))
-    # run_information_extraction(args, None)
+    logging.info('ensemble_text_classification training completed.')
+
+    run_information_extraction(args, dataset)

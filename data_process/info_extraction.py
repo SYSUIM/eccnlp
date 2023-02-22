@@ -1,19 +1,21 @@
-import sys
 import re
+from utils import read_list_file, split_dataset
 
-def read_file(path: str) -> list:
-    data_list = []
-    with open(path, 'r') as f:
-        for line in f:
-            data_list.append(eval(line.strip('\n'), {'nan': ''}))
+# def read_file(path: str) -> list:
+#     data_list = []
+#     with open(path, 'r') as f:
+#         for line in f:
+#             data_list.append(eval(line.strip('\n'), {'nan': ''}))
 
-    return data_list
+#     print(len(data_list))
 
-def data_filter(data_list: list) -> list:
-    filted_data = []
+#     return data_list
+
+def data_filter(data_list: list) -> set:
+    filted_data = set()
     for i in range(len(data_list)):
         if data_list[i]['label'] == 1:
-            filted_data.append(data_list[i])
+            filted_data.add(data_list[i]['number'])
     
     return filted_data
 
@@ -69,34 +71,58 @@ def sentence_cut(filted_data: list) -> list:
     
     return processed_data
 
-def data_process(data_list: list):
+
+def data_process(filter_number: set, original_data: list):
+    data_list = []
+    # for number in filter_number:
+    for data in original_data:
+        if data['number'] in filter_number:
+            # if data['label'] == 0:
+            #     data['result_list'] = [{"text": "", "start": 0, "end": 0}]
+            #     data['prompt'] = ''
+            data_list.append(data)
+    
+    return data_list
+                
+
+
+def dataset_split(args, data_list: list):
     train_data = []
     dev_data = []
     test_data = []
+
+    train_data, dev_data, test_data = split_dataset(data_list, args)
     
-    for i in range(len(data_list)):
-        if i % 5 == 1:
-            dev_data.append(data_list[i])
-        elif i % 5 == 2:
-            test_data.append(data_list[i])
-        else:
-            train_data.append(data_list[i])
+    # for i in range(len(data_list)):
+    #     if i % 5 == 1:
+    #         dev_data.append(data_list[i])
+    #     elif i % 5 == 2:
+    #         test_data.append(data_list[i])
+    #     else:
+    #         train_data.append(data_list[i])
 
     return train_data, dev_data, test_data
 
-def dataset_generate():
+def dataset_generate_train(args, data_list):
     # path = '/data/pzy2022/project/eccnlp_local/info_extraction/result_data_TextRNN.txt'
-    path = '/data/pzy2022/project/eccnlp_local/info_extraction/result_data2.0_TextRCNN2022_12_21_15_37.txt'
-    data_list = read_file(path)
+    # path = '/data/zyx2022/FinanceText/process_file/2.2_data_dict.txt'
+    # data_list = read_list_file(path)
     filted_data = data_filter(data_list)
-    cutted_data = sentence_cut(filted_data)
-    train_data, dev_data, test_data = data_process(cutted_data)
+    # cutted_data = sentence_cut(filted_data)
+    
+    cutted_data = data_process(filted_data, data_list)
+    train_data, dev_data, test_data = dataset_split(args, cutted_data)
 
     return train_data, dev_data, test_data
+    # return cutted_data
 
 
 if __name__ == '__main__':
-    train_data, dev_data, test_data = dataset_generate()
-    print(len(train_data))
-    print(len(dev_data))
-    print(len(test_data))
+    train_data, dev_data, test_data = dataset_generate_train()
+    # cutted_data =  dataset_generate()
+    # print(len(train_data))
+    # print(len(dev_data))
+    # print(len(test_data))
+    # print(len(cutted_data))
+    # with open("./test.txt", 'w') as f:
+    #     [f.write(str(data) + '\n') for data in cutted_data]
