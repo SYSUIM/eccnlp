@@ -101,5 +101,8 @@ def get_arguments():
 
     return args
 
+def re_filter(dataset) -> list:
+    return dataset
+
 if __name__ == '__main__':
     get_arguments()

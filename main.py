@@ -1,8 +1,9 @@
 import argparse
-import config
 import logging
 
 from utils import read_list_file
+import config
+from config import re_filter
 
 # data preprocess
 from data_process.dataprocess import re_pattern1, re_pattern2, train_dataset, split_dataset, classification_dataset
@@ -78,9 +79,11 @@ def run_information_extraction(args, data):
 if __name__ == '__main__':
     args = config.get_arguments()
 
-    # waiting for re filter...
-
     dataset = read_list_file(args.data)
+
+    # waiting for re filter...
+    dataset = re_filter(dataset)
+    
     # all_dict = text_classification(args)
     all_dict = ensemble_text_classification(args)
     logging.info('ensemble_text_classification training completed.')
