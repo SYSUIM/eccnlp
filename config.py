@@ -1,6 +1,7 @@
 import argparse
 import time
 import logging
+import re
 
 
 logging.basicConfig(
@@ -102,6 +103,49 @@ def get_arguments():
     return args
 
 def re_filter(dataset) -> list:
+    for i in range(len(dataset)):
+        dataset[i].append(0)   # predict业绩归因 [-2]
+        if dataset[i][7] & dataset[i][9] ==1:
+            dataset[i][-1]=0                
+        dataset[i].append(len(dataset[i][6])) #length [-1]
+
+         # 定义业绩归因表达式
+        Attr_pattern = '业绩|利润|亏损|损失|收入|绩效|竞争力|成本|盈利|影响|利于|发展|竞争力'  # 放宽标准则仅包括'影响|利于|发展|竞争力'
+        
+        # 拒不回答
+        if re.search('感谢|公告|报告|披露|回复|回答',dataset[i][6]): 
+            if (dataset[i][-1] <=30):
+                dataset[i][-2] = 1
+        if dataset[i][-1] < 20:
+            if re.match(Attr_pattern,dataset[i][6]):
+                dataset[i][-2] = 1
+        
+        # 无关问题：股市、薪酬、信息披露
+        pattern1 = '分红|派息|股权|利润分配|股份|股价|股市|市胆率|PE|不良率|大盘'
+        if re.match(pattern1,dataset[i][6]):
+            if not re.match(Attr_pattern,dataset[i][6]):
+                dataset[i][-2] = 1
+        if re.search('薪酬|信息披露',dataset[i][6]):
+            dataset[i][-2] = 1
+
+        # 答非所问
+        pattern3 = '不*回答问题|回避问题|官话|答非所问|没有回[复答]|态度问题'
+        if re.match(pattern3,dataset[i][6]):
+            if not re.match(Attr_pattern,dataset[i][6]):
+                dataset[i][-2] = 1
+
+        # 未来计划
+        pattern4= "未来|计划|将|预计|下一年"
+        if re.match(pattern4,dataset[i][6]):
+            if not re.match(Attr_pattern,dataset[i][6]):
+                dataset[i][-2] = 1
+                
+        # 暂无回复
+        pattern5= "(没有|暂无)[^\r\n\t\f\v，,。？！]*影响"
+        if re.match(pattern5,dataset[i][6]):
+            dataset[i][-2] = 1
+            
+        dataset[i].pop()
     return dataset
 
 if __name__ == '__main__':
