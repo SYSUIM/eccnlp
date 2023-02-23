@@ -118,6 +118,34 @@ def split_dataset(dataset,args):
     
     return train_dict, val_dict, test_dict
 
+def evaluate_sentence(result_list, classification_list):
+    predict, true = [], []
+    sentence_number = set()
+
+    for sample in classification_list:
+        if sample['label'] == 1:
+            sentence_number.add(sample['number'])
+
+    for data in result_list:
+        if data['number'] not in sentence_number:
+            true.append(0)
+            predict.append(0)
+            continue
+
+        if data['label'] == 0:
+            true.append(0)
+        else:
+            true.append(1)
+
+        if data['output'][0]:
+            predict.append(0)
+        else:
+            predict.append(1)
+        
+    classification_report_actual = classification_report(true, predict)
+    logging.info(f'\n{classification_report_actual}')
+    
+
 if __name__ == '__main__':
     # test for read_list_file
     # path = '/data/pzy2022/project/eccnlp/data_process/after_classification_data3.1.txt'

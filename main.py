@@ -1,7 +1,9 @@
+import os
 import argparse
 import logging
+from multiprocessing import Process
 
-from utils import read_list_file
+from utils import read_list_file, evaluate_sentence
 import config
 from config import re_filter
 
@@ -15,6 +17,7 @@ from item_classification.ensemble_models import ensemble_classification_model
 
 # information extraction
 from info_extraction.finetune import do_train
+from info_extraction.inference import extraction_inference
 from data_process.info_extraction import dataset_generate_train
 
 
@@ -61,8 +64,8 @@ def ensemble_text_classification(args):
     for i in range(len(predict_test)):
         test_dict[i]['label'] = predict_test[i]
     all_dict = []
-    all_dict.extend(train_dict)
-    all_dict.extend(val_dict)
+    # all_dict.extend(train_dict)
+    # all_dict.extend(val_dict)
     all_dict.extend(test_dict)
     # with open("./data/result_data/result_data_TextRNN.txt", 'w', encoding='utf8') as f:
     #     for i in range(len(all_dict)):
@@ -74,7 +77,9 @@ def run_information_extraction(args, data):
     train_data, dev_data, test_data = dataset_generate_train(args, data)
     logging.info(f'train_data: {len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
     do_train(args, train_data, dev_data)
-    return
+    result_on_test_data = extraction_inference(args, test_data)
+    
+    return result_on_test_data
 
 if __name__ == '__main__':
     args = config.get_arguments()
@@ -89,3 +94,15 @@ if __name__ == '__main__':
     logging.info('ensemble_text_classification training completed.')
 
     run_information_extraction(args, dataset)
+
+    print('parent pid: ', os.getpid())
+    processes = [
+        Process(target = ensemble_text_classification, args = (args)),
+        Process(target = run_information_extraction, args = (args, dataset))
+    ]
+    [p.start() for p in processes]
+    [p.join() for p in processes]
+    classification_result, extraction_result = [p.get() for p in processes]
+
+    # evaluate for sentences after extraction
+    evaluate_sentence(extraction_result, classification_result)
