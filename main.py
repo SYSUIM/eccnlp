@@ -85,9 +85,11 @@ if __name__ == '__main__':
     args = config.get_arguments()
 
     dataset = read_list_file(args.data)
+    logging.info(f'length of raw dataset: {len(dataset)}')
 
     # waiting for re filter...
     dataset = re_filter(dataset)
+    logging.info(f'{len(dataset)} samples are filted by re_filter')
     
     # all_dict = text_classification(args)
     all_dict = ensemble_text_classification(args)
