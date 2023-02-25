@@ -156,4 +156,8 @@ if __name__ == '__main__':
     # predict_path = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2023-01-15_predict-M15-0113_test.txt'
     # evaluate(read_list_file(true_path), read_list_file(predict_path))
 
+    # test for evaluate sentence
+    result_list = read_list_file('/data/pzy2022/project/eccnlp/info_extraction/after_extraction_data3.1.txt')
+    classification_list = read_list_file('/data/pzy2022/project/eccnlp/data_process/after_classification_data3.1.txt')
+    evaluate_sentence(result_list, classification_list)
     pass

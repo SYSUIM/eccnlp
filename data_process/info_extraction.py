@@ -92,24 +92,11 @@ def dataset_split(args, data_list: list):
     test_data = []
 
     train_data, dev_data, test_data = split_dataset(data_list, args)
-    
-    # for i in range(len(data_list)):
-    #     if i % 5 == 1:
-    #         dev_data.append(data_list[i])
-    #     elif i % 5 == 2:
-    #         test_data.append(data_list[i])
-    #     else:
-    #         train_data.append(data_list[i])
 
     return train_data, dev_data, test_data
 
 def dataset_generate_train(args, data_list):
-    # path = '/data/pzy2022/project/eccnlp_local/info_extraction/result_data_TextRNN.txt'
-    # path = '/data/zyx2022/FinanceText/process_file/2.2_data_dict.txt'
-    # data_list = read_list_file(path)
-    filted_data = data_filter(data_list)
-    # cutted_data = sentence_cut(filted_data)
-    
+    filted_data = data_filter(data_list)    
     cutted_data = data_process(filted_data, data_list)
     train_data, dev_data, test_data = dataset_split(args, cutted_data)
 

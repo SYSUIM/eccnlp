@@ -1,7 +1,7 @@
 import sys
 sys.path.append('/data/pzy2022/project/eccnlp')
 
-from data_process.info_extraction import read_file
+# from data_process.info_extraction import read_file
 from paddlenlp import Taskflow
 
 
