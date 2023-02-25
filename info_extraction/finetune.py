@@ -12,27 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
-import time
-import os
-from functools import partial
-
-import paddle
-from paddlenlp.datasets import MapDataset
-from paddle.utils.download import get_path_from_url
-from paddlenlp.datasets import load_dataset
-from paddlenlp.transformers import AutoTokenizer
-from paddlenlp.metrics import SpanEvaluator
-from paddlenlp.utils.log import logger
-
-from info_extraction.model import UIE
-# from model import UIE
-from info_extraction.evaluate import evaluate
-from info_extraction.utils import set_seed, convert_example, reader, MODEL_MAP
-
-# import paddle.distributed as dist
 
 def do_train(args, train_data, dev_data):
+    import argparse
+    import time
+    import os
+    from functools import partial
+
+    import paddle
+    from paddlenlp.datasets import MapDataset
+    from paddle.utils.download import get_path_from_url
+    from paddlenlp.datasets import load_dataset
+    from paddlenlp.transformers import AutoTokenizer
+    from paddlenlp.metrics import SpanEvaluator
+    from paddlenlp.utils.log import logger
+
+    from info_extraction.model import UIE
+    from info_extraction.evaluate import evaluate
+    from info_extraction.utils import set_seed, convert_example, reader, MODEL_MAP
+
     paddle.set_device(args.device)
     rank = paddle.distributed.get_rank()
     if paddle.distributed.get_world_size() > 1:

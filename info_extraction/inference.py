@@ -2,10 +2,11 @@ import sys
 sys.path.append('/data/pzy2022/project/eccnlp')
 
 # from data_process.info_extraction import read_file
-from paddlenlp import Taskflow
+
 
 
 def extraction_inference(args, test_data):
+    from paddlenlp import Taskflow
     # path = '/data/pzy2022/project/eccnlp/data_process/after_classification_data3.1.txt'
     # data_list = read_file(path)
 

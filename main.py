@@ -83,27 +83,29 @@ def run_information_extraction(args, data):
 if __name__ == '__main__':
     args = config.get_arguments()
 
-    dataset = read_list_file(args.data)
-    logging.info(f'length of raw dataset: {len(dataset)}')
+    raw_dataset = read_list_file(args.data)
+    logging.info(f'length of raw dataset: {len(raw_dataset)}')
 
     # waiting for re filter...
-    dataset = re_filter(dataset)
-    logging.info(f'{len(dataset)} samples are filted by re_filter')
+    dataset = re_filter(raw_dataset)
+    logging.info(f'{len(raw_dataset) - len(dataset)} samples are filted by re_filter')
     
     # all_dict = text_classification(args)
-    all_dict = ensemble_text_classification(args, dataset)
-    logging.info('ensemble_text_classification training completed.')
+    # all_dict = ensemble_text_classification(args, dataset)
+    # logging.info('ensemble_text_classification training completed.')
 
-    run_information_extraction(args, dataset)
+    # run_information_extraction(args, dataset)
 
     print('parent pid: ', os.getpid())
     processes = [
-        Process(target = ensemble_text_classification, args = (args)),
+        Process(target = ensemble_text_classification, args = (args, dataset)),
         Process(target = run_information_extraction, args = (args, dataset))
     ]
+
     [p.start() for p in processes]
+    [logging.info(f'{p} pid is: {p.pid}') for p in processes]
     [p.join() for p in processes]
     classification_result, extraction_result = [p.get() for p in processes]
 
     # evaluate for sentences after extraction
-    evaluate_sentence(extraction_result, classification_result)
+    # evaluate_sentence(extraction_result, classification_result)
