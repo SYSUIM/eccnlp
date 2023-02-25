@@ -3,4 +3,4 @@ nohup python -u main.py \
     --balance down \
     --model EnsembleModel \
     --ensemble_models TextCNN TextRNN TextRCNN TextRNN_Att DPCNN \
-    --num_epochs 20 > $(date +%Y%m%d).log 2>&1 &
+    --num_epochs 20 >>./log/$(date +%Y%m%d).log 2>&1 &

@@ -5,7 +5,7 @@ from multiprocessing import Process
 
 from utils import read_list_file, evaluate_sentence
 import config
-from config import re_filter
+from config import re_filter, check_log_dir
 
 # data preprocess
 from data_process.dataprocess import re_pattern1, re_pattern2, train_dataset, split_dataset, classification_dataset
@@ -21,11 +21,22 @@ from info_extraction.inference import extraction_inference
 from data_process.info_extraction import dataset_generate_train
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+def get_logger(log_name, log_file, level = logging.INFO):
+    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s')
+    # logging.basicConfig(
+    #     level = level,
+    #     format = '%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s',
+    #     datefmt = '%Y-%m-%d %H:%M:%S'
+    # )
+    
+    logger = logging.getLogger(log_name)
+    fileHandler = logging.FileHandler(log_file, mode='a')
+    fileHandler.setFormatter(formatter)
+    
+    logger.setLevel(level)
+    logger.addHandler(fileHandler)
+
+    return logger
 
 
 def text_classification(args, data):
@@ -72,16 +83,24 @@ def ensemble_text_classification(args, data):
     return all_dict
 
 
-def run_information_extraction(args, data):
+def run_information_extraction(args, data, logger):
     train_data, dev_data, test_data = dataset_generate_train(args, data)
-    logging.info(f'train_data: {len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
-    do_train(args, train_data, dev_data)
+    logger.info(f'train_data: {len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
+    do_train(args, train_data, dev_data, logger)
     result_on_test_data = extraction_inference(args, test_data)
     
     return result_on_test_data
 
 if __name__ == '__main__':
     args = config.get_arguments()
+
+    log_path = check_log_dir(args.time)
+
+    clf_logger = get_logger('clf_logger', log_path + '/clf.log')
+    ext_logger = get_logger('ext_logger', log_path + '/ext.log')
+
+    clf_logger.info('test1')
+    ext_logger.info('test2')
 
     raw_dataset = read_list_file(args.data)
     logging.info(f'length of raw dataset: {len(raw_dataset)}')
@@ -96,10 +115,10 @@ if __name__ == '__main__':
 
     # run_information_extraction(args, dataset)
 
-    print('parent pid: ', os.getpid())
+    logging.info('parent pid: ', os.getpid())
     processes = [
         Process(target = ensemble_text_classification, args = (args, dataset)),
-        Process(target = run_information_extraction, args = (args, dataset))
+        Process(target = run_information_extraction, args = (args, dataset, ext_logger))
     ]
 
     [p.start() for p in processes]

@@ -2,6 +2,7 @@ import argparse
 import time
 import logging
 import re
+import os
 
 
 logging.basicConfig(
@@ -13,9 +14,11 @@ logging.basicConfig(
 
 def get_arguments():
     # example for time_stamp: '2022_12_05_15_36'
-    time_stamp = time.strftime("%Y_%m_%d_%H_%M", time.localtime())
+    time_stamp = time.strftime("%Y%m%d_%H_%M", time.localtime())
 
     parser = argparse.ArgumentParser(description='eccnlp')
+
+    parser.add_argument('--time', type=str, default = str(time_stamp), help='path of raw data')
 
     '''
     here are parameters for Chinese Text Classification
@@ -147,7 +150,25 @@ def re_filter(dataset) -> list:
 
         dataset[i].pop('in_Acntet')
         dataset[i].pop('length')
+
     return dataset
 
+def check_log_dir(time_stamp):
+    proj_path = os.path.dirname(os.path.abspath(__file__))
+    log_path = proj_path + '/log'
+    if not os.path.exists(log_path):
+        os.makedirs(log_path)
+    if not os.path.exists(log_path + '/' + time_stamp):
+        os.makedirs(log_path + '/' + time_stamp)
+    
+    return log_path + '/' + time_stamp
+
 if __name__ == '__main__':
-    get_arguments()
+    # test for args
+    # get_arguments()
+
+    # test for check_log_dir
+    # log_path = check_log_dir('test')
+    # print(log_path)
+    
+    pass

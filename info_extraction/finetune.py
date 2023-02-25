@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-def do_train(args, train_data, dev_data):
+def do_train(args, train_data, dev_data, logger):
     import argparse
     import time
     import os
@@ -25,7 +25,7 @@ def do_train(args, train_data, dev_data):
     from paddlenlp.datasets import load_dataset
     from paddlenlp.transformers import AutoTokenizer
     from paddlenlp.metrics import SpanEvaluator
-    from paddlenlp.utils.log import logger
+    # from paddlenlp.utils.log import logger
 
     from info_extraction.model import UIE
     from info_extraction.evaluate import evaluate
