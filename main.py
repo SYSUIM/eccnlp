@@ -28,7 +28,7 @@ logging.basicConfig(
 )
 
 
-def text_classification(args):
+def text_classification(args, data):
     data = re_pattern1(args)
     dataset = train_dataset(data, args)
 
@@ -54,10 +54,9 @@ def text_classification(args):
     # return p_dataset
 
 
-def ensemble_text_classification(args):
-    data = re_pattern1(args)
-    dataset = train_dataset(data, args)
-    train_dict, val_dict, test_dict = split_dataset(dataset,args)
+def ensemble_text_classification(args, data):
+    # dataset = train_dataset(data, args)
+    train_dict, val_dict, test_dict = split_dataset(dataset, args)
     train_list, dev_list, test_list, train_dict, val_dict, test_dict = classification_dataset(train_dict,val_dict,test_dict, args)
     predict_test = ensemble_classification_model(train_list, dev_list, test_list, args)
     # ensemble_single_model(train_list, dev_list, test_list, args)
@@ -92,7 +91,7 @@ if __name__ == '__main__':
     logging.info(f'{len(dataset)} samples are filted by re_filter')
     
     # all_dict = text_classification(args)
-    all_dict = ensemble_text_classification(args)
+    all_dict = ensemble_text_classification(args, dataset)
     logging.info('ensemble_text_classification training completed.')
 
     run_information_extraction(args, dataset)
