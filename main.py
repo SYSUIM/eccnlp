@@ -3,9 +3,9 @@ import argparse
 import logging
 from multiprocessing import Process
 
-from utils import read_list_file, evaluate_sentence
+from utils import read_list_file, evaluate_sentence, get_logger, check_log_dir
 import config
-from config import re_filter, check_log_dir
+from config import re_filter
 
 # data preprocess
 from data_process.dataprocess import re_pattern1, re_pattern2, train_dataset, split_dataset, classification_dataset
@@ -21,22 +21,22 @@ from info_extraction.inference import extraction_inference
 from data_process.info_extraction import dataset_generate_train
 
 
-def get_logger(log_name, log_file, level = logging.INFO):
-    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s')
-    # logging.basicConfig(
-    #     level = level,
-    #     format = '%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s',
-    #     datefmt = '%Y-%m-%d %H:%M:%S'
-    # )
+# def get_logger(log_name, log_file, level = logging.INFO):
+#     formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s')
+#     # logging.basicConfig(
+#     #     level = level,
+#     #     format = '%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s',
+#     #     datefmt = '%Y-%m-%d %H:%M:%S'
+#     # )
     
-    logger = logging.getLogger(log_name)
-    fileHandler = logging.FileHandler(log_file, mode='a')
-    fileHandler.setFormatter(formatter)
+#     logger = logging.getLogger(log_name)
+#     fileHandler = logging.FileHandler(log_file, mode='a')
+#     fileHandler.setFormatter(formatter)
     
-    logger.setLevel(level)
-    logger.addHandler(fileHandler)
+#     logger.setLevel(level)
+#     logger.addHandler(fileHandler)
 
-    return logger
+#     return logger
 
 
 def text_classification(args, data):
@@ -83,10 +83,10 @@ def ensemble_text_classification(args, data):
     return all_dict
 
 
-def run_information_extraction(args, data, logger):
+def run_information_extraction(args, data):
     train_data, dev_data, test_data = dataset_generate_train(args, data)
-    logger.info(f'train_data: {len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
-    do_train(args, train_data, dev_data, logger)
+    main_logger.info(f'train_data: {len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
+    do_train(args, train_data, dev_data)
     result_on_test_data = extraction_inference(args, test_data)
     
     return result_on_test_data
@@ -96,18 +96,20 @@ if __name__ == '__main__':
 
     log_path = check_log_dir(args.time)
 
-    clf_logger = get_logger('clf_logger', log_path + '/clf.log')
-    ext_logger = get_logger('ext_logger', log_path + '/ext.log')
+    main_logger = get_logger('main_logger', log_path + '/main.log')
 
-    clf_logger.info('test1')
-    ext_logger.info('test2')
+    # clf_logger = get_logger('clf_logger', log_path + '/clf.log')
+    # ext_logger = get_logger('ext_logger', log_path + '/ext.log')
+
+    # clf_logger.info('test1')
+    # ext_logger.info('test2')
 
     raw_dataset = read_list_file(args.data)
-    logging.info(f'length of raw dataset: {len(raw_dataset)}')
+    main_logger.info(f'length of raw dataset: {len(raw_dataset)}')
 
     # waiting for re filter...
     dataset = re_filter(raw_dataset)
-    logging.info(f'{len(raw_dataset) - len(dataset)} samples are filted by re_filter')
+    main_logger.info(f'{len(raw_dataset) - len(dataset)} samples are filted by re_filter')
     
     # all_dict = text_classification(args)
     # all_dict = ensemble_text_classification(args, dataset)
@@ -115,14 +117,14 @@ if __name__ == '__main__':
 
     # run_information_extraction(args, dataset)
 
-    logging.info('parent pid: ', os.getpid())
+    main_logger.info(f'parent pid: {os.getpid()}')
     processes = [
         Process(target = ensemble_text_classification, args = (args, dataset)),
-        Process(target = run_information_extraction, args = (args, dataset, ext_logger))
+        Process(target = run_information_extraction, args = (args, dataset))
     ]
 
     [p.start() for p in processes]
-    [logging.info(f'{p} pid is: {p.pid}') for p in processes]
+    [main_logger.info(f'{p} pid is: {p.pid}') for p in processes]
     [p.join() for p in processes]
     classification_result, extraction_result = [p.get() for p in processes]
 

@@ -7,11 +7,66 @@ import pandas as pd
 from sklearn.metrics import classification_report
 from sklearn.model_selection import StratifiedShuffleSplit
 
-logging.basicConfig(
-    level=logging.INFO,
-     format='%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s',
-     datefmt='%Y-%m-%d %H:%M:%S'
-     )
+# logging.basicConfig(
+#     level=logging.INFO,
+#      format='%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s',
+#      datefmt='%Y-%m-%d %H:%M:%S'
+#      )
+
+def check_dir_available(dirname):
+
+    def check_meta(dir_name, n = 1):
+        dir_name_new=dir_name
+        if os.path.isdir(dir_name):
+            dir_name_new=dir_name[:-1] + str(n)
+            n += 1
+        if os.path.isdir(dir_name_new):
+            dir_name_new=check_meta(dir_name, n)
+        return dir_name_new
+
+    return_name=check_meta(dirname)
+
+    return return_name
+
+
+def get_log_path():
+    return log_dir_path
+
+
+def check_log_dir(time_stamp):
+    proj_path = os.path.dirname(os.path.abspath(__file__))
+    log_path = proj_path + '/log'
+    if not os.path.exists(log_path):
+        os.makedirs(log_path)
+
+    global log_dir_path
+    log_dir_path = log_path + '/' + time_stamp[:-6] + 'v0'
+    if not os.path.exists(log_dir_path):
+        os.makedirs(log_dir_path)
+    else:
+        log_dir_path = check_dir_available(log_dir_path)
+        os.makedirs(log_dir_path)
+    
+    return log_dir_path
+
+
+def get_logger(log_name, log_file, level = logging.INFO):
+    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s')
+    # logging.basicConfig(
+    #     level = level,
+    #     format = '%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s',
+    #     datefmt = '%Y-%m-%d %H:%M:%S'
+    # )
+    
+    logger = logging.getLogger(log_name)
+    fileHandler = logging.FileHandler(log_file, mode='a')
+    fileHandler.setFormatter(formatter)
+    
+    logger.setLevel(level)
+    logger.addHandler(fileHandler)
+
+    return logger
+
 
 def read_list_file(path: str) -> list:
     data_list = []
@@ -21,6 +76,7 @@ def read_list_file(path: str) -> list:
     logging.info(f'read data_list DONE. Length of {path}: {len(data_list)}')
 
     return data_list
+
 
 def evaluate(true_list: list, predict_list: list):
     predict_index_list, true_index_list = {}, []
@@ -117,6 +173,7 @@ def split_dataset(dataset,args):
         test_dict = [dataset[i] for i in test_num]
     
     return train_dict, val_dict, test_dict
+
 
 def evaluate_sentence(result_list, classification_list):
     predict, true = [], []

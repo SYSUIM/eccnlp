@@ -153,15 +153,6 @@ def re_filter(dataset) -> list:
 
     return dataset
 
-def check_log_dir(time_stamp):
-    proj_path = os.path.dirname(os.path.abspath(__file__))
-    log_path = proj_path + '/log'
-    if not os.path.exists(log_path):
-        os.makedirs(log_path)
-    if not os.path.exists(log_path + '/' + time_stamp):
-        os.makedirs(log_path + '/' + time_stamp)
-    
-    return log_path + '/' + time_stamp
 
 if __name__ == '__main__':
     # test for args
@@ -170,5 +161,5 @@ if __name__ == '__main__':
     # test for check_log_dir
     # log_path = check_log_dir('test')
     # print(log_path)
-    
+
     pass

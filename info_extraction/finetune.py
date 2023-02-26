@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-def do_train(args, train_data, dev_data, logger):
+def do_train(args, train_data, dev_data):
     import argparse
     import time
     import os
@@ -31,6 +31,10 @@ def do_train(args, train_data, dev_data, logger):
     from info_extraction.evaluate import evaluate
     from info_extraction.utils import set_seed, convert_example, reader, MODEL_MAP
 
+    from utils import get_logger, get_log_path
+
+    ext_logger = get_logger('ext_logger', get_log_path() + '/ext.log')
+
     paddle.set_device(args.device)
     rank = paddle.distributed.get_rank()
     if paddle.distributed.get_world_size() > 1:
@@ -40,7 +44,7 @@ def do_train(args, train_data, dev_data, logger):
 
     resource_file_urls = MODEL_MAP[args.UIE_model]['resource_file_urls']
 
-    logger.info("Downloading resource files...")
+    ext_logger.info("Downloading resource files...")
     for key, val in resource_file_urls.items():
         file_path = os.path.join(args.model_dir, args.UIE_model, key)
         if not os.path.exists(file_path):
@@ -122,7 +126,7 @@ def do_train(args, train_data, dev_data, logger):
             if global_step % args.logging_steps == 0 and rank == 0:
                 time_diff = time.time() - tic_train
                 loss_avg = sum(loss_list) / len(loss_list)
-                logger.info(
+                ext_logger.info(
                     "global step %d, epoch: %d, loss: %.5f, speed: %.2f step/s"
                     % (global_step, epoch, loss_avg,
                        args.logging_steps / time_diff))
@@ -135,16 +139,16 @@ def do_train(args, train_data, dev_data, logger):
                 model_to_save = model._layers if isinstance(
                     model, paddle.DataParallel) else model
                 model_to_save.save_pretrained(save_dir)
-                logger.disable()
+                ext_logger.disable()
                 tokenizer.save_pretrained(save_dir)
-                logger.enable()
+                ext_logger.enable()
 
                 precision, recall, f1 = evaluate(model, metric, dev_data_loader)
-                logger.info(
+                ext_logger.info(
                     "Evaluation precision: %.5f, recall: %.5f, F1: %.5f" %
                     (precision, recall, f1))
                 if f1 > best_f1:
-                    logger.info(
+                    ext_logger.info(
                         f"best F1 performence has been updated: {best_f1:.5f} --> {f1:.5f}"
                     )
                     best_f1 = f1
@@ -152,9 +156,9 @@ def do_train(args, train_data, dev_data, logger):
                     model_to_save = model._layers if isinstance(
                         model, paddle.DataParallel) else model
                     model_to_save.save_pretrained(save_dir)
-                    logger.disable()
+                    ext_logger.disable()
                     tokenizer.save_pretrained(save_dir)
-                    logger.enable()
+                    ext_logger.enable()
                 tic_train = time.time()
 
 
