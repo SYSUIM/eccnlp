@@ -30,7 +30,7 @@ class Config(object):
         self.num_epochs = args.num_epochs                                               # epoch数
         self.batch_size = args.batch_size                                               # mini-batch大小
         self.pad_size = args.pad_size                                                   # 每句话处理成的长度(短填长切)
-        self.learning_rate = args.learning_rate                                         # 学习率
+        self.learning_rate = args.clf_learning_rate                                         # 学习率
         self.embed = self.embedding_pretrained.size(1)\
             if self.embedding_pretrained is not None else 300                           # 字向量维度, 若使用了预训练词向量，则维度统一
         self.hidden_size = 256                                                          # lstm隐藏层

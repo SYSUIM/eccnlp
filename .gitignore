@@ -9,3 +9,5 @@ __pycache__
 *.pyc
 *.sql
 *.bak
+**/data
+**/checkpoint

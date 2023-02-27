@@ -2,7 +2,6 @@ import argparse
 import time
 import logging
 import re
-import os
 
 
 logging.basicConfig(
@@ -14,11 +13,9 @@ logging.basicConfig(
 
 def get_arguments():
     # example for time_stamp: '2022_12_05_15_36'
-    time_stamp = time.strftime("%Y%m%d_%H_%M", time.localtime())
+    time_stamp = time.strftime("%Y_%m_%d_%H_%M", time.localtime())
 
     parser = argparse.ArgumentParser(description='eccnlp')
-
-    parser.add_argument('--time', type=str, default = str(time_stamp), help='path of raw data')
 
     '''
     here are parameters for Chinese Text Classification
@@ -95,12 +92,15 @@ def get_arguments():
     parser.add_argument('--DEBUG_LOG', type=bool, default=False, help='choose whether to output debug')
     parser.add_argument('--MODEL_PATH', type=str, default='./data/data_model/model_v15_lambdarank.ckpt',help='rerank model path')
     parser.add_argument('--type', type=str, default='业绩归因',help='type of reason')
-    # parser.add_argument('--path_of_merged_reasons', type=str, default='./data/res_log/2.0_2022-12-23_merge.txt',help='path of merged reasons')
+    parser.add_argument('--path_of_merged_reasons', type=str, default='./data/res_log/2.0_2022-12-23_merge.txt',help='path of merged reasons')
     parser.add_argument('--reason_num', type=int, default=10,help='reason number')
     parser.add_argument('--f_num', type=int, default=2, help='feature number')
-    parser.add_argument('--vocab_path', type=str, default='/data/fkj2023/Project/eccnlp/phrase_rerank/bert_model/vocab.txt',help='vocab path')
-    parser.add_argument('--code_length', type=int, default=16,help='the dimension of sentence features')
 
+    '''
+    here are parameters for inference
+    '''
+    parser.add_argument('--position_prob', type=float, default=0.2, help='the position prob of UIE')
+    
 
     args = parser.parse_args()
     args_message = '\n'.join([f'{k:<20}: {v}' for k, v in vars(args).items()])
@@ -153,16 +153,7 @@ def re_filter(dataset) -> list:
 
         dataset[i].pop('in_Acntet')
         dataset[i].pop('length')
-
     return dataset
 
-
 if __name__ == '__main__':
-    # test for args
-    # get_arguments()
-
-    # test for check_log_dir
-    # log_path = check_log_dir('test')
-    # print(log_path)
-
-    pass
+    get_arguments()

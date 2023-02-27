@@ -117,7 +117,7 @@ def get_time_dif(start_time):
 
 def get_utils(train_list):
     '''提取预训练词向量'''
-    pretrain_dir = "./data/sgns.financial.char"
+    pretrain_dir = "/data/xf2022/Projects/eccnlp_local/data/sgns.financial.char"
     emb_dim = 300
     # tokenizer = lambda x: x.split(' ')  # 以词为单位构建词表(数据集中词之间以空格隔开)
     tokenizer = lambda x: [y for y in x]  # 以字为单位构建词表
