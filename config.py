@@ -151,7 +151,12 @@ def re_filter(dataset) -> list:
         dataset[i].pop('in_Acntet')
         dataset[i].pop('length')
 
-    return dataset
+    dataset1=[]
+    for i in range(len(dataset)):
+        if dataset[i]['predict_非业绩归因'] == 0:
+            dataset[i].pop('predict_非业绩归因')
+            dataset1.append(dataset[i])
+    return dataset1
 
 
 if __name__ == '__main__':
