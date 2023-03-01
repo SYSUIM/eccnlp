@@ -98,11 +98,11 @@ if __name__ == '__main__':
 
     main_logger = get_logger('main_logger', log_path + '/main.log')
 
+    args_message = '\n'.join([f'{k:<20}: {v}' for k, v in vars(args).items()])
+    main_logger.info(f'\n{args_message}')
+
     # clf_logger = get_logger('clf_logger', log_path + '/clf.log')
     # ext_logger = get_logger('ext_logger', log_path + '/ext.log')
-
-    # clf_logger.info('test1')
-    # ext_logger.info('test2')
 
     raw_dataset = read_list_file(args.data)
     main_logger.info(f'length of raw dataset: {len(raw_dataset)}')
@@ -115,7 +115,10 @@ if __name__ == '__main__':
     # all_dict = ensemble_text_classification(args, dataset)
     # logging.info('ensemble_text_classification training completed.')
 
-    # run_information_extraction(args, dataset)
+    # test = run_information_extraction(args, dataset)
+    # with open("./20220228.txt", 'w') as f:
+    #     [f.write(str(data) + '\n') for data in test]
+    # exit(0)
 
     main_logger.info(f'parent pid: {os.getpid()}')
     processes = [

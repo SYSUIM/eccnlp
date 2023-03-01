@@ -1,8 +1,14 @@
 import sys
-sys.path.append('.')
+sys.path.append('/data/pzy2022/project/eccnlp')
+import config
+from config import re_filter
+
+from utils import read_list_file, split_dataset, evaluate_sentence
 
 import logging
 from info_extraction.inference import extraction_inference
+
+from data_process.info_extraction import dataset_generate_train
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,10 +27,13 @@ if __name__ == '__main__':
     args = config.get_arguments()
 
     dataset = read_list_file(args.data)
+    # clf = read_list_file('/data/xf2022/Projects/eccnlp_local/data/result_data/result_data2.0_TextRCNN2022_12_21_15_37.txt')
+
     logging.info(f'length of raw dataset: {len(dataset)}')
 
-    # waiting for re filter...
     dataset = re_filter(dataset)
-    logging.info(f'{len(dataset)} samples are filted by re_filter')
+    train_data, dev_data, test_data = dataset_generate_train(args, dataset)
+    logging.info(f'{len(dataset)} samples left after re_filter')
     
-    extraction(args, dataset)
+    result = extraction(args, test_data)
+    # evaluate_sentence(result, clf)
