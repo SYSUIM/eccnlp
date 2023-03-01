@@ -73,7 +73,7 @@ def read_list_file(path: str) -> list:
     with open(path, 'r') as f:
         for line in f:
             data_list.append(eval(line.strip('\n'), {'nan': ''}))
-    logging.info(f'read data_list DONE. Length of {path}: {len(data_list)}')
+    logging.info(f'read {path} DONE. Length: {len(data_list)}')
 
     return data_list
 
@@ -185,8 +185,8 @@ def evaluate_sentence(result_list, classification_list):
 
     for data in result_list:
         if data['number'] not in sentence_number:
-            true.append(0)
-            predict.append(0)
+            # true.append(0)
+            # predict.append(0)
             continue
 
         if data['label'] == 0:
@@ -194,7 +194,7 @@ def evaluate_sentence(result_list, classification_list):
         else:
             true.append(1)
 
-        if data['output'][0]:
+        if data['output'][0] == {}:
             predict.append(0)
         else:
             predict.append(1)

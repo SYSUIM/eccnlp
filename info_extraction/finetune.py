@@ -139,9 +139,9 @@ def do_train(args, train_data, dev_data):
                 model_to_save = model._layers if isinstance(
                     model, paddle.DataParallel) else model
                 model_to_save.save_pretrained(save_dir)
-                ext_logger.disable()
+                # ext_logger.disable()
                 tokenizer.save_pretrained(save_dir)
-                ext_logger.enable()
+                # ext_logger.enable()
 
                 precision, recall, f1 = evaluate(model, metric, dev_data_loader)
                 ext_logger.info(
@@ -156,9 +156,9 @@ def do_train(args, train_data, dev_data):
                     model_to_save = model._layers if isinstance(
                         model, paddle.DataParallel) else model
                     model_to_save.save_pretrained(save_dir)
-                    ext_logger.disable()
+                    # ext_logger.disable()
                     tokenizer.save_pretrained(save_dir)
-                    ext_logger.enable()
+                    # ext_logger.enable()
                 tic_train = time.time()
 
 

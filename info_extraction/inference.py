@@ -11,7 +11,7 @@ def extraction_inference(args, test_data):
     # data_list = read_file(path)
 
     schema = ['业绩归因']
-    my_ie = Taskflow("information_extraction", schema=schema, task_path = args.save_dir + '/model_best', position_prob = 0.2)
+    my_ie = Taskflow("information_extraction", schema=schema, task_path = args.save_dir + '/model_best', position_prob = 0.9)
 
     for i in range(len(test_data)):
     # for data in data_list:
@@ -20,6 +20,3 @@ def extraction_inference(args, test_data):
         # print(my_ie(data['content']))
     
     return test_data
-
-    # with open("./after_extraction_data3.1.txt", 'w') as f:
-    #     [f.write(str(data) + '\n') for data in data_list]
