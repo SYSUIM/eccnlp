@@ -1,17 +1,175 @@
 import functools
-import random
 import difflib
 import numpy as np
 import logging
 import math
-import operator
 import argparse
 from datetime import datetime
+from transformers import BertTokenizer
+import torch
+from transformers import BertModel, BertConfig,BertTokenizer
+from torch import nn
+
+
+config_path = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/bert_model/config.json'
+model_path = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/bert_model/pytorch_model.bin'
+vocab_path = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/bert_model/vocab.txt'
+
+
+def add_embedding(args, uie_list):
+    textNet = BertTextNet(args.code_length)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    textNet.to(device)
+    tokenizer = BertTokenizer.from_pretrained(args.vocab_path)        
+    lines = uie_list 
+    after_embedding_list = []
+    for i in range(len(lines)):
+        data_pre = lines[i]
+        dic = data_pre
+        # no uie reason
+        if len(data_pre["output"][0]) == 0: 
+            after_embedding_list.append(dic)
+            continue
+        data=data_pre["output"][0]
+        elem_num=len(data[args.type])   
+        # at least one uie reason              
+        if elem_num > 0: 
+            dic_new = {}  
+            uie_re = []
+            str_pre = data_pre["content"]
+            s_cls = '[CLS]'
+            s_sep = '[SEP]'
+            for j in data[args.type]:
+                lb = 0
+                re = -1    
+                if j['start'] > 100 :
+                    lb = j['start'] -100  
+                if len(str_pre) - j["end"] >100:
+                    re = j["end"] + 100
+                s_before = s_cls + str_pre[lb : j["start"]] + s_sep
+                s_after = s_cls + str_pre[j["end"] : re] + s_sep
+                sen_f = sentence_features(textNet, tokenizer, [s_before, s_after], device)
+                j['s_before'] = sen_f[0]
+                j['s_after'] = sen_f[1]
+                uie_re.append(j)
+            dic_new[args.type] = uie_re
+        dic['output'] = [dic_new]
+        # log.info(dic)
+        after_embedding_list.append(dic)
+    return after_embedding_list
+
+
+class BertTextNet(nn.Module):
+    def __init__(self,code_length):
+        super(BertTextNet, self).__init__()
+ 
+        modelConfig = BertConfig.from_pretrained(config_path)
+        self.textExtractor = BertModel.from_pretrained(
+            model_path, config=modelConfig)
+        embedding_dim = self.textExtractor.config.hidden_size
+ 
+        self.fc = nn.Linear(embedding_dim, code_length)
+        self.tanh = torch.nn.Tanh()
+ 
+    def forward(self, tokens, segments, input_masks):
+        output = self.textExtractor(tokens, token_type_ids=segments,
+                                    attention_mask=input_masks)
+        text_embeddings = output[0][:, 0, :]
+        # output[0](batch size, sequence length, model hidden dimension)
+ 
+        features = self.fc(text_embeddings)
+        features = self.tanh(features)
+        return features
+
+def sentence_features(textNet, tokenizer, texts, device):
+    tokens, segments, input_masks = [], [], []
+    for text in texts:
+        tokenized_text = tokenizer.tokenize(text)  
+        indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_text)
+        tokens.append(indexed_tokens)
+        segments.append([0] * len(indexed_tokens))
+        input_masks.append([1] * len(indexed_tokens))
+
+    max_len = max([len(single) for single in tokens]) 
+
+    for j in range(len(tokens)):
+        padding = [0] * (max_len - len(tokens[j]))
+        tokens[j] += padding
+        segments[j] += padding
+        input_masks[j] += padding
+
+    tokens_tensor = torch.tensor(tokens)
+    segments_tensors = torch.tensor(segments)
+    input_masks_tensors = torch.tensor(input_masks)
+
+    tokens_tensor, segments_tensors, input_masks_tensors = tokens_tensor.to(device), segments_tensors.to(device), input_masks_tensors.to(device)
+
+    text_hashCodes = textNet(tokens_tensor, segments_tensors, input_masks_tensors)  # text_hashCodes is a 16-dim text feature
+
+    return text_hashCodes.tolist()
+
+
+def get_text_list(uie_list):
+    text_list = []
+    num_list = []
+    lines = uie_list      
+    for i in range(len(lines)):
+        data_pre = lines[i]
+        if (data_pre["number"] not in num_list):
+            num_list.append(data_pre["number"])
+            text_list.append(data_pre["raw_text"])
+    return text_list, num_list
+
+# O(N)
+def merge_reasons_new(args, text_list, num_list, uie_list):
+    
+    merged_reasons = []
+
+    # qid_map: key: value of number
+    #          value： number index in uie_list
+    qid_map = {}
+    idx = 0
+    for record in uie_list:
+        qid_map.setdefault(record['number'], [])
+        qid_map[record['number']].append(idx)
+        idx += 1
+
+    for num in qid_map.keys():  #  iterate over number 
+        id_list = qid_map[num]  # a list of many short setences' indexes in uie_list
+        dic = {}
+        reasons = []
+        res_list = []
+        dic_rea={}
+        for i in id_list:   # iterate over short setences' indexes of a qid
+            data_pre = uie_list[i]
+            prompt = data_pre["prompt"]
+            dic_rea[args.type] = reasons
+            if data_pre["result_list"][0]["text"] != '':
+                res_list.append(data_pre["result_list"][0])            
+            data = data_pre["output"][0]
+            if len(data) == 0 :
+                continue 
+            for k in data[args.type]:  # k: every uie reason
+                reasons.append(k)
+        dic['raw_text'] = text_list[num_list.index(num)]
+        dic['number'] = num
+        dic['result_list'] = res_list
+        dic['prompt'] = prompt
+        dic['output'] = [dic_rea]
+        # log.info(dic)
+        merged_reasons.append(dic)
+
+    return merged_reasons
+
 
 def read_list(filepath):
+    list_lines = []
     with open(filepath, "r", encoding="utf8") as f:
         lines = f.readlines()
-    return lines
+        for i in range(len(lines)):
+            data_pre = eval(lines[i])
+            list_lines.append(data_pre)
+    return list_lines
 
 def print_list(alist, log):
     for i in alist:
@@ -50,10 +208,10 @@ def get_logger3(name,logpath):
 def string_similar(s1, s2):
     return difflib.SequenceMatcher(None, s1, s2).quick_ratio()
 
-#定义两个两个原因的排序标准
-#第一维：相似度 1
-#第二维：概率 2
-#第三维：词出现的次数 3
+# define sort
+# 1：similarity
+# 2：uie probability
+# 3: word frequency
 def list_cmp(x,y):
     if x[1] != y[1]:
         return x[1]>y[1]
@@ -62,7 +220,7 @@ def list_cmp(x,y):
     else:
         return x[2]>y[2]
 
-#归一化
+
 def normalize(a_list):
     y=[]
     arr = np.asarray(a_list)
@@ -71,26 +229,30 @@ def normalize(a_list):
         y.append(x)
     return y
 
-#计算词库中的词在原因中出现的次数cot
+
 def calculate_cot(j,vocab):
     cot=0
     for search_list in vocab:
         if search_list in j["text"]:
             cot=cot+1
     return cot
-
-# 排序后生成标签，rank1标记label为1，其余为-1              
+   
+# rank1 :3  rank2:  2  rank3: 1  rank4: 0  after: 0          
 def generate_label(line_elem,all_rows):
     line_elem.sort(key=functools.cmp_to_key(list_cmp))
     for j in range(len(line_elem)):
         if j==0:
+            line_elem[j].append(3)
+        elif j == 1:
+            line_elem[j].append(2)
+        elif j == 2:
             line_elem[j].append(1)
         else:
-            line_elem[j].append(-1)
+            line_elem[j].append(0)
         all_rows.append(line_elem[j])        
     return all_rows
 
-#为每个UIE提取原因构造input格式的向量
+
 def form_input_vector(all_rows,cnt):
     y=[] 
     list_len=len(all_rows)
@@ -98,17 +260,16 @@ def form_input_vector(all_rows,cnt):
     for i in range(list_len):
         line_in_all=[]
         line_in_all.append(all_rows[i][line_len - 1]) #label
-        line_in_all.append(all_rows[i][0]) #key_num
-        line_in_all.append(all_rows[i][2]) #probability
-        line_in_all.append(cnt[i])         #词库次数cot(归一化后）
-        line_in_all = line_in_all + all_rows[i][4 : line_len - 1]
+        line_in_all.append(all_rows[i][0]) # key_num
+        line_in_all.append(all_rows[i][2]) # uie probability
+        line_in_all.append(cnt[i])         # word frequency
+        line_in_all = line_in_all + all_rows[i][4 : line_len - 1] # context features
         y.append(line_in_all)
     return y
 
 
-#构建input格式  eg:  -1 qid:0 1:0.1 2:0.09
+# train_list: test_list = 7:3
 def form_input_data(args, alllist, reason_list):
-    allline=[]
     all_list=[]
     train_list=[]
     test_list=[]
@@ -116,31 +277,21 @@ def form_input_data(args, alllist, reason_list):
     len_data=len(alllist)
     qid_num = alllist[len_data - 1][1] + 1
     bre = int(math.floor(qid_num*0.7))
-
     for i in alllist:
-        str0 = "" + str(i[0]) +" " +"qid:" + str(i[1])
-        str2 =""
-        for k in range(len(i)):
-            if k!=0 and k!=1:
-                str2 = str2 + " "+str(k-1) +":" + str(i[k])
-        str1 = str0 +str2
-        allline.append(str1)
-        # cott+=1
-        all_list.append(str1)
+        all_list.append(i)
         if i[1] < bre :
-            train_list.append(str1)
+            train_list.append(i)
         if i[1] >= bre:
-            test_list.append(str1)
+            test_list.append(i)
             reason_of_test.append(reason_list[alllist.index(i)])
+
     return all_list,train_list,test_list,reason_of_test 
 
-#将UIE提取的原因及构建的原因保存在reason_list中
+# write uie reasons into reason_list
 def write_reason(args, data, reason_list):
     for j in data[args.type]:
         reason_list.append(j["text"])
 
-
-#读取词库中的词
 def read_word(word_fath):
     vocab=[]
     with open(word_fath, "r", encoding="utf8") as f1:
@@ -149,32 +300,27 @@ def read_word(word_fath):
             vocab.append(i.strip('\n'))
     return vocab
 
-#构建模型所需的数据,返回 全部数据列表，训练数据列表，测试数据列表，csv所需要的content和lab列表
-def form_input_list(args, merged_list):
-    vocab = read_word("/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.log")
+def form_input_list(args, merged_list, vocab):
     all_rows=[]  
     pro_cnt=[]  #存词库中的词在原因中出现的次数
     reason_list = []
     key_num=-1  #标记quary
     lines = merged_list
     for i in range(len(lines)):
-        if lines[i][0] != '{':
-            continue
-        data_pre = eval(lines[i])
-        if len(data_pre["output"][0]) == 0:  # 预测为无因果
+        data_pre = lines[i]
+        if len(data_pre["output"][0]) == 0:  
             continue
         data=data_pre["output"][0]
-        # print(data)#{'业绩归因': [{'text': '“调整年”', 'start': 3, 'end': 8, 'probability': 0.6058174246136119}]}
         elem_num=len(data[args.type])        
-        if elem_num>1:           # 预测出的因果不少于1个
-            lab_txt=data_pre["result_list"][0][0]["text"] #当前quary下管院标记的原因
+        if elem_num>1:           # number of uie reason >1
+            lab_txt=data_pre["result_list"][0][0]["text"]   #  label text 
             if len(lab_txt) != 0:
                 key_num+=1 #合法quary
                 line_elem=[]
                 write_reason(args, data, reason_list)                   
                 for j in data[args.type]:
-                    elem=[]#当前quary 下每一个原因的特征向量
-                    tmp=string_similar(j["text"],lab_txt) #管院标记原因与UIE提取原因的相似度
+                    elem=[]  # feature
+                    tmp=string_similar(j["text"],lab_txt) 
                     #elem 每一维的含义
                     # 第0维：key_num  第一维：相似度  第二维：概率  第三维：词出现的次数
                     # 第四维：label（1，-1）  第5维：归一后的出现次数
@@ -191,30 +337,27 @@ def form_input_list(args, merged_list):
     all_list,train_list,test_list,reason_of_test = form_input_data(args, all, reason_list)
     return all_list, train_list, test_list, reason_of_test
 
-def form_predict_input_list(args, merged_list):
-    vocab = read_word("/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.log")
+
+def form_predict_input_list(args, merged_list, vocab):
     all_rows=[]  
-    pro_cnt=[]  #存词库中的词在原因中出现的次数
-    key_num=-1  #标记quary
+    pro_cnt=[]  
+    key_num=-1 
     lines = merged_list
     reasons=[] 
     for i in range(len(lines)):
-        if lines[i][0] != '{':
-            continue
-        data_pre = eval(lines[i])
-        if len(data_pre["output"][0]) == 0:  # 预测为无因果
+        data_pre = lines[i]
+        if len(data_pre["output"][0]) == 0:  
             continue
         data=data_pre["output"][0]
         elem_num=len(data[args.type])                   
-        if elem_num>1:           # 预测出的因果不少于1个
-            lab_txt=data_pre["result_list"][0][0]["text"] #当前quary下管院标记的原因
-            # if len(lab_txt) != 0:
-            key_num+=1 #合法quary qid
+        if elem_num>1:          
+            lab_txt=data_pre["result_list"][0][0]["text"]
+            key_num+=1 
             line_elem=[]             
             for j in data[args.type]:
                 reasons.append(j["text"])
-                elem=[]#当前quary 下每一个原因的特征向量
-                tmp=string_similar(j["text"],lab_txt) #管院标记原因与UIE提取原因的相似度
+                elem=[]
+                tmp=string_similar(j["text"],lab_txt) 
                 cot = calculate_cot(j,vocab)
                 elem.extend([key_num, tmp, j["probability"], cot])  
                 elem = elem + j["s_before"] + j["s_after"]                  
@@ -222,7 +365,6 @@ def form_predict_input_list(args, merged_list):
                 line_elem.append(elem)
             all_rows = generate_label(line_elem,all_rows) 
     cnt = normalize(pro_cnt)
-    list_len=len(all_rows)
     all = form_input_vector(all_rows,cnt)
     all_list,train_list,test_list,useless_reason= form_input_data(args, all, reasons)
     return all_list, reasons
@@ -235,61 +377,19 @@ def cmp(x,y):
     else:
         return 0
 
-#解析有标签的数据文本，返回元组: (map[qid]feature_vec, list[qid])
-def parse_labeled_data_file(args,fin):
-    data = {}
-    keys = []
-    last_key = ""
-    for line in fin:
-        line = line.split("#")[0]
-        elems = line.split(" ")
-        label = float(elems[0])
-        qid = elems[1].split(":")[1]
-        feature_v = [0.0] * args.f_num
-        # 提取line中的feature_v[1],feature_v[2]
-        for i in range(2, args.f_num + 2):
-            subelems = elems[i].split(":")
-            if len(subelems) < 2:
-                continue
-            index = int(subelems[0]) - 1
-            feature_v[index] = float(subelems[1])
-        # 
-        if qid in data:
-            data[qid].append([label] + feature_v)
-        else:
-            data[qid] = [[label] + feature_v]
-        if last_key != qid:
-            last_key = qid
-            keys.append(qid)
-    return data, keys
-
-#计算需要一次检索的样本对
-def calc_query_doc_pairwise_data(doc_list):
-    X1 = []
-    X2 = []
-    Y1 = []
-    Y2 = []
-    # sorted_doc_list = sorted(doc_list, cmp=lambda x, y: cmp(y[0], x[0]))
-    sorted_doc_list = sorted(doc_list, key=functools.cmp_to_key(lambda x, y: cmp(y[0], x[0])))
-    for i in range(len(sorted_doc_list)):
-        for j in range(i + 1, len(sorted_doc_list), 1):
-            X1.append(sorted_doc_list[i][1:])
-            Y1.append(sorted_doc_list[i][0:1])
-            X2.append(sorted_doc_list[j][1:])
-            Y2.append(sorted_doc_list[j][0:1])
-    return [X1, X2], [Y1, Y2]
-
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Data Processing')
     parser.add_argument('--type', type=str, default='业绩归因',help='type of answer')
     parser.add_argument('--reason_num', type=int, default=10,help='reason number')
-    parser.add_argument('--path_of_merged_reasons', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2023-01-15_merge.txt',help='path of merged reasons')
-    parser.add_argument('--f_num', type=int, default=2, help='feature number')
-    parser.add_argument('--usage', type=str, default="predict", help='generate train data or predict data')
+    # parser.add_argument('--path_of_merged_reasons', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2023-01-15_merge.txt',help='path of merged reasons')
+    parser.add_argument('--f_num', type=int, default=34, help='feature number')
+    parser.add_argument('--usage', type=str, default="train", help='choose train or predict')
     
     args = parser.parse_args()
+
+    vocab = read_word("/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.log")
 
     logpath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/transfer/" 
 
@@ -302,7 +402,7 @@ if __name__ == "__main__":
         log3=get_logger('all_data', logpath)
         log4=get_logger('reason_of_test', logpath)
 
-        all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list)
+        all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list, vocab)
 
         for i in range(len(train_list)):
             log1.info(train_list[i]) 
@@ -317,7 +417,7 @@ if __name__ == "__main__":
         log5=get_logger('all_predict_data', logpath)
         log6=get_logger('all_predict_reasons', logpath)
         
-        all_list, reasons = form_predict_input_list(args, merged_list)
+        all_list, reasons = form_predict_input_list(args, merged_list, vocab)
 
         for i in range(len(all_list)):
             log5.info(all_list[i]) 
