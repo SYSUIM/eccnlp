@@ -302,7 +302,7 @@ def read_word(word_fath):
 
 def form_input_list(args, merged_list, vocab):
     all_rows=[]  
-    pro_cnt=[]  #存词库中的词在原因中出现的次数
+    pro_cnt=[]  # word cnt
     reason_list = []
     key_num=-1  #标记quary
     lines = merged_list
