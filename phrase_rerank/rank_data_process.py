@@ -175,7 +175,7 @@ def print_list(alist, log):
 
 def get_logger1(name,logpath):
     logger = logging.getLogger(name)
-    filename = f'{datetime.now().strftime("%y_%m_%d_%H_%M_%S")}_{name}.log'
+    filename = f'{datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}_{name}.log'
     fh = logging.FileHandler(logpath + filename, mode='w+', encoding='utf-8')
     formatter = logging.Formatter('%(message)s')
     logger.setLevel(logging.INFO)
@@ -185,7 +185,7 @@ def get_logger1(name,logpath):
 
 def get_logger2(name, logpath):
     logger = logging.getLogger(name)
-    filename = f'{datetime.now().strftime("%y_%m_%d_%H_%M_%S")}_{name}.log'
+    filename = f'{datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}_{name}.log'
     fh = logging.FileHandler(logpath + filename, mode='a+', encoding='utf-8')
     formatter = logging.Formatter('%(asctime)s %(message)s')
     logger.setLevel(logging.INFO)
@@ -385,10 +385,10 @@ if __name__ == "__main__":
     merged_list = read_list(filepath)
 
     if (args.usage == "train"):
-        log1=get_logger('train', logpath)
-        log2=get_logger('test', logpath)
-        log3=get_logger('all_data', logpath)
-        log4=get_logger('reason_of_test', logpath)
+        log1=get_logger1('train', logpath)
+        log2=get_logger1('test', logpath)
+        log3=get_logger1('all_data', logpath)
+        log4=get_logger1('reason_of_test', logpath)
 
         all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list, vocab)
 
@@ -402,8 +402,8 @@ if __name__ == "__main__":
             log4.info(reason_of_test[i])
 
     if (args.usage == "predict"):
-        log5=get_logger('all_predict_data', logpath)
-        log6=get_logger('all_predict_reasons', logpath)
+        log5=get_logger1('all_predict_data', logpath)
+        log6=get_logger1('all_predict_reasons', logpath)
         
         all_list, reasons = form_predict_input_list(args, merged_list, vocab)
 
