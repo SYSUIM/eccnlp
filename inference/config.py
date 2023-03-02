@@ -20,7 +20,7 @@ def get_arguments():
     '''
     here are parameters for Chinese Text Classification
     '''
-    parser.add_argument('--data', type=str, required=True, help='path of raw data')
+    # parser.add_argument('--data', type=str, required=True, help='path of raw data')
     parser.add_argument('--min_length', default=5, type=int, help='not less than 0')
     parser.add_argument('--balance', choices=["up", "down", "none"], default='none',type=str, help='up or down or none')
     # parser.add_argument('--balance', choices=["up", "down", "none"], default='none',type=str, required=True, help='up or down or none')
@@ -30,7 +30,7 @@ def get_arguments():
     parser.add_argument("--sampling_seed", default=10, type=int, help="Random seed for sampling data")
     # parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
     parser.add_argument("--classification_model_seed", default=1, type=int, help="Random seed for initializing classification model")
-    parser.add_argument('--model', choices=["TextCNN", "TextRNN", "FastText", "TextRCNN", "TextRNN_Att", "DPCNN", "Transformer", "EnsembleModel"], type=str, required=True, help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
+    # parser.add_argument('--model', choices=["TextCNN", "TextRNN", "FastText", "TextRCNN", "TextRNN_Att", "DPCNN", "Transformer", "EnsembleModel"], type=str, required=True, help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
     parser.add_argument('--ensemble_models', type=str, nargs='+', help='ensemdble some models')
     # parser.add_argument('--num_ensemble', default=9, type=int, help='The number of ensembling single model')
     parser.add_argument('--embedding', default='pre_trained', type=str, help='Random or pre_trained')
@@ -89,12 +89,14 @@ def get_arguments():
     '''
     here are parameters for Rerank
     '''
-    parser.add_argument('--DEBUG_LOG', type=bool, default=False, help='choose whether to output debug')
-    parser.add_argument('--MODEL_PATH', type=str, default='./data/data_model/model_v15_lambdarank.ckpt',help='rerank model path')
-    parser.add_argument('--type', type=str, default='业绩归因',help='type of reason')
-    parser.add_argument('--path_of_merged_reasons', type=str, default='./data/res_log/2.0_2022-12-23_merge.txt',help='path of merged reasons')
-    parser.add_argument('--reason_num', type=int, default=10,help='reason number')
-    parser.add_argument('--f_num', type=int, default=2, help='feature number')
+    parser.add_argument('--type', type=str, default='业绩归因',help='type of answer')
+    parser.add_argument('--f_num', type=int, default=34, help='feature number')
+    parser.add_argument('--vocab_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/bert_model/vocab.txt',help='vocab path')
+    parser.add_argument('--code_length', type=int, default=16,help='the dimension of sentence features') 
+    parser.add_argument('--lambdarank_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter.pkl',help='lambdarank path')
+    parser.add_argument('--word_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.log',help='word path')
+
+
 
     '''
     here are parameters for inference
