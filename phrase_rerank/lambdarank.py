@@ -1,304 +1,482 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import tensorflow.compat.v1 as tf
-# import tensorflow as tf
-tf.disable_v2_behavior()
-# import argparse
-
-# parser = argparse.ArgumentParser(description='lambdarank')
-# parser.add_argument('--FEATURE_NUM', type=int, default=2, help='特征维度')
-# parser.add_argument('--LAYER_WIDTH', type=int, default=10, help='图层宽度')   
-# parser.add_argument('--USE_HIDDEN_LAYER', type=bool, default=True, help='是否使用隐藏层')
-# parser.add_argument('--QUALITY_MEASURE', type=str, default='normalized_discounted_cumulative_gain', help='质量检测')
-# parser.add_argument('--NO_LAMBDA_MEASURE_USING_SGD', type=str, default='pure_sgd', help='不使用LAMBDA时')
-# parser.add_argument('--LEARNING_RATE', type=float, default=0.001, help='学习率')
-# parser.add_argument('--LAMBDA_MEASURE_AUC', type=str, default='factorized_pairwise_precision', help='AUC指标')
-# parser.add_argument('--LAMBDA_MEASURE_NDCG', type=str, default='normalized_discounted_cumulative_gain', help='NDCG指标')
-# args = parser.parse_args()
-
-args_FEATURE_NUM = 2
-args_LAYER_WIDTH = 10
-args_USE_HIDDEN_LAYER = True
-args_QUALITY_MEASURE = "normalized_discounted_cumulative_gain"
-args_NO_LAMBDA_MEASURE_USING_SGD = "pure_sgd"
-args_LEARNING_RATE = 0.001
-args_LAMBDA_MEASURE_AUC = "factorized_pairwise_precision"
-args_LAMBDA_MEASURE_NDCG = "normalized_discounted_cumulative_gain"
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+import argparse
+from datetime import datetime
+# from rank_data_process import get_logger, get_logger2, form_input_list, form_predict_input_list, read_list,add_embedding, get_text_list, merge_reasons
 
 
-with tf.name_scope("debug"):
-    t = tf.constant(0) # debug variable
-    tt = tf.constant(0) # debug variable
-    ttt = tf.constant(0) # debug variable
+def dcg(scores):
+    """
+    compute the DCG value based on the given score
+    :param scores: a score list of documents
+    :return v: DCG value
+    """
+    v = 0
+    for i in range(len(scores)):
+        v += (np.power(2, scores[i]) - 1) / np.log2(i+2)  # i+2 is because i starts from 0
+    return v
 
-weights = {
-        "hidden": tf.Variable(tf.random_normal(
-            [args_FEATURE_NUM, args_LAYER_WIDTH]), name="W_hidden"),
-        "out": tf.Variable(tf.random_normal([args_LAYER_WIDTH, 1]), name="W_out"),
-        "linear": tf.Variable(tf.random_normal([args_FEATURE_NUM, 1]), name="W_linear")
-}
 
-biases = {
-        "hidden": tf.Variable(tf.random_normal([args_LAYER_WIDTH]), name="b_hidden"),
-        "out": tf.Variable(tf.random_normal([1]), name="b_out"),
-        "linear": tf.Variable(tf.random_normal([1]), name="b_linear"),
-}
+def idcg(scores):
+    """
+    compute the IDCG value (best dcg value) based on the given score
+    :param scores: a score list of documents
+    :return:  IDCG value
+    """
+    best_scores = sorted(scores)[::-1]
+    return dcg(best_scores)
 
-with tf.name_scope("mlp"):
-    with tf.name_scope("input"):
-        # tf.compat.v1.disable_eager_execution()
-        X = tf.placeholder(tf.float32, [None, args_FEATURE_NUM], name="X")
-        Y = tf.placeholder(tf.float32, [None, 1], name="Y")
 
-    def graph_params():
-        """Get layer params in array
+def ndcg(scores):
+    """
+    compute the NDCG value based on the given score
+    :param scores: a score list of documents
+    :return:  NDCG value
+    """
+    return dcg(scores)/idcg(scores)
 
-        Returns:
-            layer_params: list of params of params in all layers.
-                One layer may contain multiple lists, such as
-                weight_1 = [w_1, w_2, .., w_n] bias_1 = [w_n+1, .., w_p]
-                weight_2 = [w_p+1, ...]
-        """
-        layer_params = []
-        if args_USE_HIDDEN_LAYER == True:
-            layer_params.append((weights["hidden"], biases["hidden"]))
-            layer_params.append((weights["out"], biases["out"]))
+def single_dcg(scores, i, j):
+    """
+    compute the single dcg that i-th element located j-th position
+    :param scores:
+    :param i:
+    :param j:
+    :return:
+    """
+    return (np.power(2, scores[i]) - 1) / np.log2(j+2)
+
+def map():
+
+
+    return 
+
+
+def ndcg_k(scores, k):
+    scores_k = scores[:k]
+    dcg_k = dcg(scores_k)
+    idcg_k = dcg(sorted(scores)[::-1][:k])
+    if idcg_k == 0:
+        return np.nan
+    return dcg_k/idcg_k
+
+
+def group_by(data, qid_index):
+    """
+    :param data: input_data
+    :param qid_index: the column num where qid locates in input data
+    :return: a dict group by qid
+    """
+    qid_doc_map = {}
+    idx = 0
+    for record in data:
+        qid_doc_map.setdefault(record[qid_index], [])
+        qid_doc_map[record[qid_index]].append(idx)
+        idx += 1
+    return qid_doc_map
+
+
+def get_pairs(scores):
+    """
+
+    :param scores: given score list of documents for a particular query
+    :return: the documents pairs whose firth doc has a higher value than second one.
+    """
+    pairs = []
+    for i in range(len(scores)):
+        for j in range(len(scores)):
+            if scores[i] > scores[j]:
+                pairs.append((i, j))
+    return pairs
+
+
+def compute_lambda(true_scores, temp_scores, order_pairs, qid):
+    """
+
+    :param true_scores: the score list of the documents for the qid query
+    :param temp_scores: the predict score list of the these documents
+    :param order_pairs: the partial oder pairs where first document has higher score than the second one
+    :param qid: specific query id
+    :return:
+
+        lambdas: changed lambda value for these documents
+        w: w value
+        qid: query id
+    """
+    doc_num = len(true_scores)
+    lambdas = np.zeros(doc_num)
+    w = np.zeros(doc_num)
+    IDCG = idcg(true_scores)
+    single_dcgs ={}
+    for i, j in order_pairs:
+        if (i, i) not in single_dcgs:
+            single_dcgs[(i, i)] = single_dcg(true_scores, i, i)
+        if (j, j) not in single_dcgs:
+            single_dcgs[(j, j)] = single_dcg(true_scores, j, j)
+        single_dcgs[(i, j)] = single_dcg(true_scores, i, j)
+        single_dcgs[(j, i)] = single_dcg(true_scores, j, i)
+
+
+    for i, j in order_pairs:
+        delta = abs(single_dcgs[(i,j)] + single_dcgs[(j,i)] - single_dcgs[(i,i)] -single_dcgs[(j,j)])/IDCG
+        rho = 1 / (1 + np.exp(temp_scores[i] - temp_scores[j]))  
+        lambdas[i] += rho * delta
+        lambdas[j] -= rho * delta
+
+        rho_complement = 1.0 - rho   
+        w[i] += rho * rho_complement * delta   
+        w[j] -= rho * rho_complement * delta   
+
+    return lambdas, w, qid
+
+
+class LambdaRank(nn.Module):      
+    def __init__(self, training_data):
+        super(LambdaRank, self).__init__()
+     
+        self.training_data = training_data
+        self.n_feature = training_data.shape[1] - 2
+        self.h1_units = 512
+        self.h2_units = 256
+        self.trees = [] 
+
+        self.h1 = nn.Linear(training_data.shape[1] - 2, 512)
+        self.h2 = nn.Linear(512, 256)
+        self.out = nn.Linear(256, 1)
+        # for para in self.model.parameters():
+        #     print(para[0])
+
+    def forward(self, x ):
+        x = self.h1(x)
+        x = F.relu(x)
+        x = self.h2(x)
+        x = F.relu(x)
+        x = self.out(x)
+        return x
+
+def train(training_data, lr, epoch, modelpath, device, model, log):
+    """
+    train the model to fit the train dataset
+    """
+
+    qid_doc_map = group_by(training_data, 1)
+    query_idx = qid_doc_map.keys()
+    # true_scores is a matrix, different rows represent different queries
+    true_scores = [training_data[qid_doc_map[qid], 0] for qid in query_idx]
+
+    order_paris = []
+    for scores in true_scores:
+        order_paris.append(get_pairs(scores))
+
+    sample_num = len(training_data)
+
+    for i in range(epoch):
+        train_data = torch.from_numpy(training_data[:, 2:].astype(np.float32)).to(device)
+        predicted_scores = model(train_data)
+        predicted_scores_numpy = predicted_scores.cpu().data.numpy()
+        lambdas = np.zeros(sample_num)
+
+        pred_score = [predicted_scores_numpy[qid_doc_map[qid]] for qid in query_idx]
+
+        zip_parameters = zip(true_scores, pred_score, order_paris, query_idx)
+        for ts, ps, op, qi in zip_parameters:
+            sub_lambda, sub_w, qid = compute_lambda(ts, ps, op, qi)
+            lambdas[qid_doc_map[qid]] = sub_lambda
+
+        # update parameters
+        model.zero_grad()
+        lambdas_torch = torch.Tensor(lambdas).view((len(lambdas), 1)).to(device)
+        predicted_scores.backward(lambdas_torch, retain_graph=True)  
+        with torch.no_grad():
+            for param in model.parameters():
+                param.data.add_(param.grad.data * lr)
+
+
+        if i % 1 == 0:
+            qid_doc_map = group_by(training_data, 1)
+            ndcg_list = []
+            for qid in qid_doc_map.keys():
+                subset = qid_doc_map[qid]
+                X_subset = torch.from_numpy(training_data[subset, 2:].astype(np.float32)).to(device)
+                sub_pred_score = model(X_subset).cpu().data.numpy().reshape(1, len(X_subset)).squeeze()
+
+                # calculate the predicted NDCG
+                true_label = training_data[qid_doc_map[qid], 0]
+                k = len(true_label)
+                pred_sort_index = np.argsort(sub_pred_score)[::-1]
+                true_label = true_label[pred_sort_index]
+                ndcg_val = ndcg_k(true_label, k)
+                ndcg_list.append(ndcg_val)
+            log.info('Epoch:{}, Average NDCG : {}'.format(i, np.nanmean(ndcg_list)))
+    log.info(model.state_dict().keys())   # output model parameter name
+    torch.save(model.state_dict(), modelpath)
+    log.info("model saved in %s",modelpath)
+
+
+
+def predict(args, data, reason_list):
+
+    model = LambdaRank(data)
+    model.load_state_dict(torch.load(args.lambdarank_path))
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    qid_doc_map = group_by(data, 1)
+    predicted_scores = np.zeros(len(data))
+    predicted_list = []
+
+    rerank_scores = []
+    rerank_reasons= []
+    for qid in qid_doc_map.keys():    
+        predicted_scores_after_rerank = []    
+        subset = qid_doc_map[qid] 
+        X_subset = torch.from_numpy(data[subset, 2:].astype(np.float32)).to(device)
+        sub_pred_score = model(X_subset).cpu().data.numpy().reshape(1, len(X_subset)).squeeze()
+        if sub_pred_score.size == 1:          
+            sub_pred_score = [float(sub_pred_score)]
+        else: 
+            sub_pred_score = sub_pred_score.tolist()
+
+        # rerank reasons by scores
+        predicted_scores[qid_doc_map[qid]] = sub_pred_score 
+        rerank_qid_reasons = []  
+        pred_sort_index = np.argsort(sub_pred_score)[::-1]
+        for i in pred_sort_index:
+            predict_score = sub_pred_score[i] 
+            predicted_scores_after_rerank.append(sub_pred_score[i])       
+            subset_idex = sub_pred_score.index(predict_score)
+            data_index = subset[subset_idex]
+            rerank_qid_reasons.append(reason_list[data_index])
+        rerank_scores.append(predicted_scores_after_rerank)
+        rerank_reasons.append(rerank_qid_reasons)
+
+        for i in sub_pred_score:
+            predicted_list.append(i)
+    return predicted_list, rerank_reasons, rerank_scores
+
+def validate(data, k, modelpath):
+    """
+    validate the NDCG metric
+    :param data: given the testset
+    :param k: used to compute the NDCG@k
+    :return:
+    """
+    model = LambdaRank(data)
+    model.load_state_dict(torch.load(modelpath))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+
+    qid_doc_map = group_by(data, 1)
+    ndcg_list = []
+    predicted_scores = []
+    for qid in qid_doc_map.keys():
+        subset = qid_doc_map[qid]
+        X_subset = torch.from_numpy(data[subset, 2:].astype(np.float32)).to(device)
+        sub_pred_score = model(X_subset).cpu().data.numpy().reshape(1, len(X_subset)).squeeze()        
+        # calculate the predicted NDCG
+        true_label = data[qid_doc_map[qid], 0]
+        predicted_scores.append([sub_pred_score, true_label])
+        k = len(true_label)
+        pred_sort_index = np.argsort(sub_pred_score)[::-1]
+        true_label = true_label[pred_sort_index]
+        ndcg_val = ndcg_k(true_label, k)
+        ndcg_list.append(ndcg_val)
+    return ndcg_list, predicted_scores
+
+def precision_k(data, modelpath, log):
+
+    model = LambdaRank(data)
+    model.load_state_dict(torch.load(modelpath))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+
+    qid_doc_map = group_by(data, 1)
+    true_predict = 0
+    predicted_scores = []
+    for qid in qid_doc_map.keys():
+        # log.info('------------------a new qid-------------------: %s',qid)
+        subset = qid_doc_map[qid]  # index
+        real_score = data[subset, 0] # real_score
+        # log.info("real_score : %s", real_score)
+        X_subset = torch.from_numpy(data[subset, 2:].astype(np.float32)).to(device)  # 34-dimensional features
+        sub_pred_score = model(X_subset).cpu().data.numpy().reshape(1, len(X_subset)).squeeze()
+        # log.info("sub_pred_score: %s", sub_pred_score)  
+        rank1_index = np.argmax(sub_pred_score)
+        if(rank1_index == 0):
+            true_predict += 1
+        # log.info("rank1_index: %s", rank1_index)
+        predicted_scores.append([sub_pred_score, real_score])
+        pred_sort_index = np.argsort(sub_pred_score)[::-1]
+        # log.info("pred_sort_index:%s", pred_sort_index)
+    precision_1 = true_predict / len(qid_doc_map)
+    log.info("precision_1: %s",precision_1)
+
+    # log.info("qid_doc_map.keys(): %s", qid_doc_map.keys())
+    return precision_1, predicted_scores
+
+
+
+def add_rerank(args, rerank_list,rerank_scores, merged_list, log):
+    now=0
+    res=[]
+    lines = merged_list
+    for i in range(len(lines)):           
+        data_pre = lines[i]     
+        data=data_pre["output"][0]
+        if len(data) == 0:
+            continue
+        all_reason_list=[]
+        if len(data[args.type]) == 0: 
+            all_reason_list.append(data[args.type])
+            data_pre["rerank"]=all_reason_list
+            data_pre["score"]=[]
         else:
-            layer_params.append((weights["linear"], biases["linear"]))
-        return layer_params
+            data_pre["rerank"] = rerank_list[now]
+            data_pre["score"] = rerank_scores[now]
+            now += 1
+        res.append(data_pre)
+        log.info(data_pre)               
+    return res
+
+def read_word(filepath):
+    alist = []
+    with open(filepath, "r", encoding="utf8") as f:
+        lines = f.readlines()
+        for line in lines:
+            line = line.strip()
+            alist.append(line)
+    return alist
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description='Data Processing')
+    parser.add_argument('--type', type=str, default='业绩归因',help='type of answer')
+    parser.add_argument('--reason_num', type=int, default=10,help='reason number')
+    parser.add_argument('--f_num', type=int, default=34, help='feature number')
+    parser.add_argument('--usage', type=str, default="train", help='generate train data or predict data')  
+    parser.add_argument('--vocab_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/bert_model/vocab.txt',help='vocab path')
+    parser.add_argument('--code_length', type=int, default=16,help='the dimension of sentence features') 
+    args = parser.parse_args()
+
+    # # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/test.txt'
+    # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
+    # # uie 结果路径
+    # # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/info.txt'
+
+    # uie_list = read_list(filepath)
+
+    # #embedding
+    # after_embedding_list = add_embedding(args, uie_list)
+    # #merge reasons
+    # rea_list, num_list = get_reason_list(uie_list)
+    # merged_list = merge_reasons_new(args, rea_list, num_list, after_embedding_list)
 
 
-    def compute_graph(X):
-        """Build compute graph
+    # logpath2 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/transfer/" 
+    # log2 = get_logger2('gpu_train_pythorch',logpath2)
 
-        define a function for computing ds_i/dw_k respectively,
-            as the tf.gradient() computes sum_{k} dy_k/dx_i w.r.t x_i
+    # #train
+    # epoch = 1000
+    # learning_rate = 0.0001 
+    # all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list)
+    # training_data = np.array(train_list)
+    # model = LambdaRank(training_data)
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # model = model.to(device)
+    # modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter'+datetime.now().strftime("%m_%d_%H_%M_%S")+'.pkl'
+    # train(training_data, learning_rate, epoch, modelpath, device, model, log2)
 
-        Args:
-            X: the input feature vector tensor shaped [None, x_i]
-        Returns:
-            y: the output predict tensor shaped [None, y_i]
-        """
-        if args_USE_HIDDEN_LAYER == True:
-            with tf.name_scope("hidden_layer"):
-                layer_h1 = tf.add(tf.matmul(X, weights["hidden"]), biases["hidden"])
-                layer_h1 = tf.nn.relu(layer_h1)
-            with tf.name_scope("out_layer"):
-                y = tf.add(tf.matmul(layer_h1, weights["out"]), biases["out"])
-        else:
-            with tf.name_scope("linear_layer"):
-                y = tf.add(tf.matmul(X, weights["linear"]), biases["linear"])
-        return y
 
-with tf.name_scope("matrices"):
-    identity_mat = tf.diag(tf.ones(tf.shape(tf.squeeze(Y)), dtype=tf.int32))
-    y = compute_graph(X)
-    # score diff matrix with shape [doc_count, doc_count]
-    # sigma_ij = matrix of sigma(s_i - s_j)
-    #     in default RankNet, sigma = Identity, s_i = f(xi)
-    # note: sigma_ij is the logit
-    #    thus Pij = sigmoid(sigma_ij)
-    sigma_ij = y - tf.transpose(y)
+    word = read_word('/data/fkj2023/Project/eccnlp_local/data/word.log')
+    filepath ='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/2023-03-02_merged_list.log'
+    merged_list = read_list(filepath)
+    modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter.pkl'
+    predict_list, reasons = form_predict_input_list(args, merged_list, word)
+    predict_data = np.array(predict_list)
+    predicted_list, rerank_reasons, rerank_scores = predict(predict_list, reasons ,modelpath)
 
-    # relevance diff matrix with shape [doc_count, doc_count]
-    Sij_ = Y - tf.transpose(Y)
-    # pairwise label matrix
-    Sij = tf.minimum(1.0, tf.maximum(-1.0, Sij_))
 
-    # pairwise label probability matrix
-    Pij_hat = 1.0 / 2.0 * (1 + Sij)
 
-    # pairwise lambda matrix
-    # lambda_ij = dCij/ds_i = 1/2 * (1 - Sij) * dsigma(s_i - s_j)/d(s_i - s_j) * 1
-    #    - (dsigma(s_i - s_j)/d(s_i - s_j) * 1) / (1 + e^(sigma_ij))
-    # here we assign sigma = Identity, thus dsigma/d(si - sj) = 1
-    # thus lambda_ij = 1.0 / 2.0 * (1 - Sij) - 1.0 / (1 + tf.exp(sigma_ij))
-    # but tf.exp may have numerical precision issue
-    # comforming to sigma_ij + sigma_ji = 0, lambda_ij + lambda_ji = 0
-    # use the reformulation exp(-x) = exp(log(1 + exp(-|x|)) - min(0, x)) - 1
-    lambda_ij = 1.0 / 2.0 * (1 - Sij) - 1.0 / \
-        tf.exp(tf.log(1 + tf.exp(-tf.abs(-sigma_ij))) - tf.minimum(0.0, -sigma_ij))
 
-    # the cost matrix
-    # Cij = −P ̄ijoij + log(1 + eoij) = (1 − P ̄ij)oij + log(1 + e−oij)
-    # can be rearrange as
-    # Cij ≡ C(oij) = −P ̄ijlogPij − (1 − P ̄ij)log(1 − Pij)
-    Cij = tf.nn.sigmoid_cross_entropy_with_logits(
-        logits=sigma_ij, labels=Pij_hat)
 
-    # dC/dw_k = \sum{lambda_ij * (ds_i/dw_k - ds_j/dw_k)}
-    #    = \sum{lambda_i * ds_i/dw_k}
-    # lambda_i is the coefficiency of dC/dw_k
-    # which is factorized as lambda_i = \sum_{if Sij = 1}{lambda_ij} -
-    #    \sum_{if Sji = 1}{lambda_ji}
-    ij_positive_label_mat = tf.maximum(Sij, 0) #Mij = 1 if (i, j) \in P
-    ij_positive_mat = ij_positive_label_mat * lambda_ij
-    ij_sum = tf.reduce_sum(ij_positive_mat, [1])
-    ji_sum = tf.reduce_sum(ij_positive_mat, [0])
-    lambda_i = ij_sum - ji_sum #lambda_i for \sum_{i}dCij/dsi - \sum_{i}dCji/dsj
 
-with tf.name_scope("train_op"):
-    loss = tf.reduce_mean(Cij)
-    # flatten params of layer params
-    layer_params = graph_params()
-    wk_arr = [wk for w_b in layer_params for wk in w_b]
 
-    # unpack X on dimension 0 and computes gradients w.r.t x_i,
-    # resulting on a tensor R with R.shape[0] = X.shape[0]
-    # because tf.gradients(Y, X) computes sum_{k} dy_k/dx_i
-    # we want ds_i/dw_k, i.e. dg(x_i)/dw_k
-    # thus we need to compute s_i and w_k respectively
-    def make_dsi_dwk_closure(w_k):
-        """Make a closure w.r.t wk
 
-        Args:
-            w_k: respected to which gradient is computed
-        Returns:
-            a function passed to tf.map_fn() which accept x_i
-        """
-        def compute_dsi_dwk(x_i):
-            """Compute gradient of graph(x_i) w.r.t w_k
 
-            Args:
-                x_i: single input feature vector
-            Returns:
-                a single tensor representing gradient ds_i/dw_k
-            """
-            xi_mat = tf.expand_dims(x_i, 0)
-            return tf.gradients(compute_graph(xi_mat), [w_k])[0]
-        return compute_dsi_dwk
 
-    # computes [None, gradient] matrix of ds_i/dw_k
-    def compute_ds_dwk(w_k):
-        """Compute [ds_1/dw_k, ds_2/dw_k, ..] mat
 
-        Args:
-            w_k: a node param to compute
-        Returns:
-            a [None, gradient] tensor
-        """
-        dsi_dwk_mat = tf.map_fn(make_dsi_dwk_closure(w_k), X)
-        return dsi_dwk_mat
 
-    def compute_dC_dwk(lambda_i):
-        """Compute gradients dC/dw_k
 
-        Args:
-            lambda_i: computed lambda coefficients
-        Returns:
-            array of dC/dwk gradients
-        """
-        dC_dwk_arr = []
-        for wk in wk_arr:
-            # ds_dwk for hidden layer param shaped [N, feature_num, layer_width]
-            # ds_dwk for output layer param shaped [N, feature_num]
-            ds_dwk = compute_ds_dwk(wk)
-            # dC/dwk is \sum_{i} lambda_i * ds_i/dwk
-            lambdai_dsi_dwk = tf.map_fn(lambda x: x[0] * x[1],
-                    (ds_dwk, tf.expand_dims(lambda_i, 1)), dtype=tf.float32)
-            dC_dwk = tf.reduce_sum(lambdai_dsi_dwk, axis=[0])
-            dC_dwk_arr.append(dC_dwk)
-        return dC_dwk_arr
+    # logpath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/transfer/" 
+    # log = get_logger2('gpu_train_pythorch',logpath)
+    # log2 = get_logger1('gpu_test_pythorch_res',logpath)
+    # log.info('---------------------------------------------------TEST AGAIN---------------------------------------------------')
+    # # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/merged_23-0115_test.txt'
+    # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2023-01-15_merge.txt'
+    # merged_list = read_list(filepath)
+    # # all_list, reasons = form_predict_input_list(args, merged_list)
+    # all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list)
 
-    if args_QUALITY_MEASURE == args_NO_LAMBDA_MEASURE_USING_SGD:
-        train_op = tf.train.GradientDescentOptimizer(
-            args_LEARNING_RATE).minimize(loss)
-    elif args_QUALITY_MEASURE == args_LAMBDA_MEASURE_AUC:
-        # compute gradients dC/dw_k
-        dC_dwk_arr = compute_dC_dwk(lambda_i)
 
-        # flattened
-        flat_wk = wk_arr[:]
-        flat_grad = dC_dwk_arr[:]
+    # training_data = np.array(train_list)
+    # n_feature = training_data.shape[1] - 2
+    # h1_units = 512
+    # h2_units = 256
+    # epoch = 40
+    # learning_rate = 0.0001
+    # log.info("lambda2_pytorch")
 
-        # apply gradients
-        train_op = tf.train.GradientDescentOptimizer(
-            args_LEARNING_RATE).apply_gradients(
-                [(gr, wk) for gr, wk in zip(flat_grad, flat_wk)]
-            )
-        pass
-    elif args_QUALITY_MEASURE == args_LAMBDA_MEASURE_NDCG:
-        relevance = tf.maximum(Y, 0) # negative label normalize to 0
-        Y_r = tf.squeeze(Y)
-        Y_sort_r = tf.nn.top_k(Y_r, k=tf.shape(Y_r)[0]).values
-        Y_sort = tf.expand_dims(Y_sort_r, [1])
-        relevance_sort = tf.maximum(Y_sort, 0) # ideal result sequence
-        ranks_sort_r = tf.cast(tf.range(1, tf.shape(Y)[0] + 1, 1), dtype=tf.float32) # [1, 2, ..]
-        ranks_sort = tf.expand_dims(ranks_sort_r, [1]) # column vector
-        y_r = tf.squeeze(y) # row vector (1-D tensor)
-        # y_indices_sort[i] = j means doc j ranks i
-        y_indices_sort = tf.nn.top_k(y_r, k=tf.shape(y_r)[0]).indices
-        def gen_mask_tensor(x):
-            """Generate mask tensor
 
-            Args:
-                x: location 1-D tensor
-            Return:
-                1-D tensor [0, 0, .. ,1, .., 0] with index x set to 1
-            """
-            return tf.gather(identity_mat, tf.squeeze(x))
-        idx_to_rank_mat = tf.map_fn(gen_mask_tensor, tf.expand_dims(y_indices_sort, [1]))
-        # ranks_compute[i] = j means the document ranks i is doc j
-        # i.e. reverse mapping of y_indices_sort
-        ranks_compute_r = tf.reduce_sum(ranks_sort * tf.cast(idx_to_rank_mat, dtype=tf.float32), axis=[0])
-        ranks_compute = tf.expand_dims(ranks_compute_r, [1])
 
-        # DCG(t) = \sum^(t)_{1}
-        def log2(x):
-            """Compute log(x)/log(2)
-            """
-            return tf.log(x)/tf.log(tf.constant(2.0))
-        # current DCG
-        dcg_each = (2 ** relevance - 1) / log2(ranks_compute + 1)
-        dcg = tf.reduce_sum(dcg_each)
-        # ideal DCG
-        max_dcg_each =(2 ** relevance_sort - 1) / log2(ranks_sort + 1)
-        max_dcg = tf.reduce_sum(max_dcg_each)
-        # |\Delta NDCG| matrix by swapping each i, j rank position pair
-        # denoted li = relavance of i, ri = rank of i, lirj = 2^(li)/lg2(rj + 1)
-        # [l1r1 l1r1 l1r1
-        #  l2r2 l2r2 l2r2
-        #  l3r3 l3r3 l3r3]
-        dcg_each_col_tile = tf.tile(dcg_each, [1, tf.shape(y)[0]])
-        # [l1r1 l2r2 l3r3
-        #  l1r1 l2r2 l3r3
-        #  l1r1 l2r2 l3r3]
-        dcg_each_row_tile = tf.tile(tf.transpose(dcg_each), [tf.shape(y)[0], 1])
-        # [l1r1 l1r2 l1r3
-        #  l2r1 l2r2 l2r3
-        #  l3r1 l3r2 l3r3]
-        dcg_swap_col = (2 ** relevance - 1) / log2(tf.transpose(ranks_compute) + 1)
-        # [l1r1 l2r1 l3r1
-        #  l1r2 l2r2 l3r2
-        #  l1r3 l2r3 l3r3]
-        dcg_swap_row = tf.transpose(dcg_swap_col)
-        delta_dcg = 0 - dcg_each_col_tile - dcg_each_row_tile + dcg_swap_col + dcg_swap_row
-        delta_ndcg = delta_dcg / max_dcg
+    # #train
+    # modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v1_parameter.pkl'
+    # model = LambdaRank(training_data)
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # # model.to(device)
+    # print("model to device")
+    # train(learning_rate,modelpath,device)
+    # log.info("lambda2_pytorch train and save") 
 
-        # the objective function of NDCG is not the cost C to minimize, but instead the
-        #     another gain function to maximize.
-        # dCij/dsi holds the direction and pairwise amount to adjust dsi/dwk,
-        #     by multiply the absolute objective function change amount |\delta_{NDCG}|
-        # The lambda_ij for the cost C to minimize becomes
-        lambda_ij_objective = lambda_ij * tf.abs(delta_ndcg)
 
-        # lambda_i becomes
-        ij_positive_label_mat = tf.maximum(Sij, 0) # Mij = 1 if (i, j) \in P
-        ij_positive_mat_objective = ij_positive_label_mat * lambda_ij_objective
-        ij_sum_objective = tf.reduce_sum(ij_positive_mat_objective, [1])
-        ji_sum_objective = tf.reduce_sum(ij_positive_mat_objective, [0])
-        lambda_i_objective = ij_sum_objective - ji_sum_objective
 
-        # compute gradients dC/dw_k
-        dC_dwk_arr = compute_dC_dwk(lambda_i_objective)
+    # # predict and validate
+    # # model = LambdaRank(training_data, n_feature, h1_units, h2_units)
+    # model.load_state_dict(torch.load(modelpath))
+    # log.info("load model in %s",modelpath)
+    # k = 2
+    # test_data = np.array(test_list)
+    # ndcg , pred_scores= validate(test_data, k)
+    # precision_k(test_data)
+    # predicted_list, rerank_reasons, rerank_scores = predict(test_data, reason_of_test,model)
+    # # add_rerank(args, rerank_reasons,rerank_scores, merged_list, log2)
+    # log.info("model used")
+    # log.info("----------------ndcg---------------------")
+    # log.info(ndcg)
+    # log.info('----------------------predict_scores-----------------')
+    # log.info(pred_scores)
+    # log.info("----------------ndcg.shape---------------------")
+    # log.info(np.array(ndcg).shape)
+    # log.info("----------------Average NDCG---------------------")
+    # log.info(np.nanmean(ndcg))
 
-        # flattened
-        flat_wk = wk_arr[:]
-        flat_grad = dC_dwk_arr[:]
 
-        # apply gradients
-        train_op = tf.train.GradientDescentOptimizer(
-            args_LEARNING_RATE).apply_gradients(
-                [(gr, wk) for gr, wk in zip(flat_grad, flat_wk)]
-            )
-        pass
+
+
+
+'''
+
+    # predict and precision
+    model = LambdaRank(training_data, n_feature, h1_units, h2_units)
+    model.load_state_dict(torch.load("/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_parameter.pkl"))
+    log.info("load model in /data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_parameter.pkl")
+    train_data = np.array(all_list)
+    precision_k(train_data)
+    ndcg , pred_scores= validate(train_data, 2)
+    log.info("pred_scores: %s", pred_scores)
+    # log.info("np.nanmean(ndcg): %s", np.nanmean(ndcg))
+    
+    log.info("reason_of_test: %s", reasons)
+    predicted_list, rerank_reasons, rerank_scores = predict(train_data, reasons,model)
+    add_rerank(args, rerank_reasons,rerank_scores, merged_list, log2)
+'''
+
