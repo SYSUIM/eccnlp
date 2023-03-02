@@ -1,24 +1,9 @@
 import argparse
-# import ..config
-# from data_process.dataprocess import re_pattern2, train_dataset, build_thesaurus
 from rank_data_process import get_logger1, get_logger2, form_input_list, read_list, print_list, add_embedding, get_text_list, merge_reasons, read_word
 import numpy as np
 from lambdarank import LambdaRank, train, validate, precision_k
 import torch
 from datetime import datetime
-# from ..data_process.dataprocess import build_thesaurus
-
-
-# def update_thesaurus(args):
-#     raw_dataset = read_list_file(args.data)
-#     dataset = re_filter(raw_dataset)
-#     t_path = '/data/fkj2023/Project/eccnlp_local/data_process/stop_words.txt'
-#     word = build_thesaurus(dataset, t_path)
-#     logpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/word/'
-#     log = get_logger('word',logpath)
-#     print_list(word, log)
-#     return word
-
 
 #rerank
 def run_rerank(args, uie_list, word):
@@ -45,7 +30,7 @@ def run_rerank(args, uie_list, word):
     #train
     train_start = datetime.now()
     logpath3 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/train_lambdarank/" 
-    # log3 = get_logger2('test_pythorch_main_res',logpath3)
+
     log3 = get_logger2('train_ndcg',logpath3)
     epoch = 10
     learning_rate = 0.0001
@@ -54,7 +39,7 @@ def run_rerank(args, uie_list, word):
     model = LambdaRank(training_data)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-    modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter'+datetime.now().strftime("%m_%d_%H_%M_%S")+'.pkl'
+    modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter'+datetime.now().strftime("%Y-%m-%d_%H_%M_%S")+'.pkl'
     train(training_data, learning_rate, epoch, modelpath, device, model, log3)
     train_end = datetime.now()
     log3.info("train time : %s  minutes", (train_end - train_start).seconds/60 )
