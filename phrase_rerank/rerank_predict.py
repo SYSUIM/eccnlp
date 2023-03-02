@@ -1,6 +1,6 @@
 import argparse
 
-from rank_data_process import get_logger,  form_predict_input_list, read_list, print_list, add_embedding, get_text_list, merge_reasons, read_word
+from rank_data_process import get_logger1,  form_predict_input_list, read_list, print_list, add_embedding, get_text_list, merge_reasons, read_word
 import numpy as np
 from lambdarank import LambdaRank, add_rerank, predict
 import torch
@@ -22,7 +22,7 @@ def rerank_predict(args, uie_list):
     # modelpath1  = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter.pkl'
     predicted_list, rerank_reasons, rerank_scores = predict(args, predict_data, reasons)
     logpath4 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/predict/" 
-    log4 = get_logger('result_add_rerank',logpath4)
+    log4 = get_logger1('result_add_rerank',logpath4)
     res = add_rerank(args, rerank_reasons,rerank_scores, merged_list, log4)
     predict_end = datetime.now()
     # log4.info("predict time : %s  minutes", (predict_end - predict_start).seconds/60)
