@@ -20,7 +20,7 @@ def get_arguments():
     '''
     here are parameters for Chinese Text Classification
     '''
-    # parser.add_argument('--data', type=str, required=True, help='path of raw data')
+    parser.add_argument('--data', type=str, required=True, help='path of raw data')
     parser.add_argument('--min_length', default=5, type=int, help='not less than 0')
     parser.add_argument('--balance', choices=["up", "down", "none"], default='none',type=str, help='up or down or none')
     # parser.add_argument('--balance', choices=["up", "down", "none"], default='none',type=str, required=True, help='up or down or none')
@@ -30,7 +30,7 @@ def get_arguments():
     parser.add_argument("--sampling_seed", default=10, type=int, help="Random seed for sampling data")
     # parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
     parser.add_argument("--classification_model_seed", default=1, type=int, help="Random seed for initializing classification model")
-    # parser.add_argument('--model', choices=["TextCNN", "TextRNN", "FastText", "TextRCNN", "TextRNN_Att", "DPCNN", "Transformer", "EnsembleModel"], type=str, required=True, help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
+    parser.add_argument('--model', choices=["TextCNN", "TextRNN", "FastText", "TextRCNN", "TextRNN_Att", "DPCNN", "Transformer", "EnsembleModel"], type=str, required=True, help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
     parser.add_argument('--ensemble_models', type=str, nargs='+', help='ensemdble some models')
     # parser.add_argument('--num_ensemble', default=9, type=int, help='The number of ensembling single model')
     parser.add_argument('--embedding', default='pre_trained', type=str, help='Random or pre_trained')
