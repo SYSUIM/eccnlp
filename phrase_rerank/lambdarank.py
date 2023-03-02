@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import argparse
 from datetime import datetime
-from rank_data_process import get_logger, get_logger2, form_input_list, form_predict_input_list, read_list,add_embedding, get_reason_list, merge_reasons_new
+# from rank_data_process import get_logger, get_logger2, form_input_list, form_predict_input_list, read_list,add_embedding, get_text_list, merge_reasons
 
 
 def dcg(scores):
@@ -211,52 +211,45 @@ def train(training_data, lr, epoch, modelpath, device, model, log):
             log.info('Epoch:{}, Average NDCG : {}'.format(i, np.nanmean(ndcg_list)))
     log.info(model.state_dict().keys())   # output model parameter name
     torch.save(model.state_dict(), modelpath)
-    log.info("model saved")
+    log.info("model saved in %s",modelpath)
 
 
 
-def predict(data, reason_list, modelpath):
-    """
-    predict the score for each document in testset
-    :param data: given testset
-    :return:
-    """
+def predict(args, data, reason_list):
+
     model = LambdaRank(data)
-    model.load_state_dict(torch.load(modelpath))
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.load_state_dict(torch.load(args.lambdarank_path))
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-
-    id = 0
     qid_doc_map = group_by(data, 1)
     predicted_scores = np.zeros(len(data))
     predicted_list = []
-    rerank_reason_list = []
 
     rerank_scores = []
     rerank_reasons= []
     for qid in qid_doc_map.keys():    
-        print("--------------new qid---------------")
         predicted_scores_after_rerank = []    
         subset = qid_doc_map[qid] 
         X_subset = torch.from_numpy(data[subset, 2:].astype(np.float32)).to(device)
         sub_pred_score = model(X_subset).cpu().data.numpy().reshape(1, len(X_subset)).squeeze()
-        
+        if sub_pred_score.size == 1:          
+            sub_pred_score = [float(sub_pred_score)]
+        else: 
+            sub_pred_score = sub_pred_score.tolist()
+
         # rerank reasons by scores
         predicted_scores[qid_doc_map[qid]] = sub_pred_score 
-        predicted_scores_list = sub_pred_score.tolist()
         rerank_qid_reasons = []  
-        pred_sort_index = np.argsort(sub_pred_score)[::-1]  
-
+        pred_sort_index = np.argsort(sub_pred_score)[::-1]
         for i in pred_sort_index:
             predict_score = sub_pred_score[i] 
-            # print(predict_score)
-            predicted_scores_after_rerank.append(sub_pred_score[i])
-            subset_idex = predicted_scores_list.index(predict_score)
+            predicted_scores_after_rerank.append(sub_pred_score[i])       
+            subset_idex = sub_pred_score.index(predict_score)
             data_index = subset[subset_idex]
-            rerank_reason_list.append(reason_list[data_index])
             rerank_qid_reasons.append(reason_list[data_index])
         rerank_scores.append(predicted_scores_after_rerank)
         rerank_reasons.append(rerank_qid_reasons)
+
         for i in sub_pred_score:
             predicted_list.append(i)
     return predicted_list, rerank_reasons, rerank_scores
@@ -301,7 +294,7 @@ def precision_k(data, modelpath, log):
     true_predict = 0
     predicted_scores = []
     for qid in qid_doc_map.keys():
-        log.info('------------------a new qid-------------------: %s',qid)
+        # log.info('------------------a new qid-------------------: %s',qid)
         subset = qid_doc_map[qid]  # index
         real_score = data[subset, 0] # real_score
         # log.info("real_score : %s", real_score)
@@ -316,7 +309,7 @@ def precision_k(data, modelpath, log):
         pred_sort_index = np.argsort(sub_pred_score)[::-1]
         # log.info("pred_sort_index:%s", pred_sort_index)
     precision_1 = true_predict / len(qid_doc_map)
-    # log.info("precision_1: %s",precision_1)
+    log.info("precision_1: %s",precision_1)
 
     # log.info("qid_doc_map.keys(): %s", qid_doc_map.keys())
     return precision_1, predicted_scores
@@ -326,13 +319,7 @@ def precision_k(data, modelpath, log):
 def add_rerank(args, rerank_list,rerank_scores, merged_list, log):
     now=0
     res=[]
-    print(len(rerank_list))
-    print(len(rerank_scores))
-    
-    lenth=len(merged_list)
-    print(lenth)
     lines = merged_list
-
     for i in range(len(lines)):           
         data_pre = lines[i]     
         data=data_pre["output"][0]
@@ -343,12 +330,7 @@ def add_rerank(args, rerank_list,rerank_scores, merged_list, log):
             all_reason_list.append(data[args.type])
             data_pre["rerank"]=all_reason_list
             data_pre["score"]=[]
-        elif len(data[args.type]) < 2:
-            all_reason_list.append(data[args.type][0]["text"])
-            data_pre["rerank"]=all_reason_list
-            data_pre["score"]=[]
         else:
-            print(now)
             data_pre["rerank"] = rerank_list[now]
             data_pre["score"] = rerank_scores[now]
             now += 1
@@ -356,8 +338,14 @@ def add_rerank(args, rerank_list,rerank_scores, merged_list, log):
         log.info(data_pre)               
     return res
 
-
-
+def read_word(filepath):
+    alist = []
+    with open(filepath, "r", encoding="utf8") as f:
+        lines = f.readlines()
+        for line in lines:
+            line = line.strip()
+            alist.append(line)
+    return alist
 
 if __name__ == '__main__':
 
@@ -370,34 +358,42 @@ if __name__ == '__main__':
     parser.add_argument('--code_length', type=int, default=16,help='the dimension of sentence features') 
     args = parser.parse_args()
 
-    # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/test.txt'
-    filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
-    # uie 结果路径
-    # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/info.txt'
+    # # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/test.txt'
+    # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
+    # # uie 结果路径
+    # # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/info.txt'
 
-    uie_list = read_list(filepath)
+    # uie_list = read_list(filepath)
 
-    #embedding
-    after_embedding_list = add_embedding(args, uie_list)
-    #merge reasons
-    rea_list, num_list = get_reason_list(uie_list)
-    merged_list = merge_reasons_new(args, rea_list, num_list, after_embedding_list)
-
-
-    logpath2 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/transfer/" 
-    log2 = get_logger2('gpu_train_pythorch',logpath2)
+    # #embedding
+    # after_embedding_list = add_embedding(args, uie_list)
+    # #merge reasons
+    # rea_list, num_list = get_reason_list(uie_list)
+    # merged_list = merge_reasons_new(args, rea_list, num_list, after_embedding_list)
 
 
-    #train
-    epoch = 1000
-    learning_rate = 0.0001 
-    all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list)
-    training_data = np.array(train_list)
-    model = LambdaRank(training_data)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
-    modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter'+datetime.now().strftime("%m_%d_%H_%M_%S")+'.pkl'
-    train(training_data, learning_rate, epoch, modelpath, device, model, log2)
+    # logpath2 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/transfer/" 
+    # log2 = get_logger2('gpu_train_pythorch',logpath2)
+
+    # #train
+    # epoch = 1000
+    # learning_rate = 0.0001 
+    # all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list)
+    # training_data = np.array(train_list)
+    # model = LambdaRank(training_data)
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # model = model.to(device)
+    # modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter'+datetime.now().strftime("%m_%d_%H_%M_%S")+'.pkl'
+    # train(training_data, learning_rate, epoch, modelpath, device, model, log2)
+
+
+    word = read_word('/data/fkj2023/Project/eccnlp_local/data/word.log')
+    filepath ='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/2023-03-02_merged_list.log'
+    merged_list = read_list(filepath)
+    modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter.pkl'
+    predict_list, reasons = form_predict_input_list(args, merged_list, word)
+    predict_data = np.array(predict_list)
+    predicted_list, rerank_reasons, rerank_scores = predict(predict_list, reasons ,modelpath)
 
 
 
@@ -413,7 +409,7 @@ if __name__ == '__main__':
 
     # logpath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/transfer/" 
     # log = get_logger2('gpu_train_pythorch',logpath)
-    # log2 = get_logger('gpu_test_pythorch_res',logpath)
+    # log2 = get_logger1('gpu_test_pythorch_res',logpath)
     # log.info('---------------------------------------------------TEST AGAIN---------------------------------------------------')
     # # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/merged_23-0115_test.txt'
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2023-01-15_merge.txt'
