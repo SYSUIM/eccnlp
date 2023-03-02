@@ -1,7 +1,7 @@
 import argparse
 # import ..config
 # from data_process.dataprocess import re_pattern2, train_dataset, build_thesaurus
-from rank_data_process import get_logger, get_logger2, form_input_list, read_list, print_list, add_embedding, get_text_list, merge_reasons, read_word
+from rank_data_process import get_logger1, get_logger2, form_input_list, read_list, print_list, add_embedding, get_text_list, merge_reasons, read_word
 import numpy as np
 from lambdarank import LambdaRank, train, validate, precision_k
 import torch
@@ -27,7 +27,7 @@ def run_rerank(args, uie_list, word):
     embedding_start = datetime.now()
     after_embedding_list = add_embedding(args, uie_list)
     logpath1 = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/embedding/'
-    log1 = get_logger("embedding_list",logpath1)
+    log1 = get_logger1("embedding_list",logpath1)
     print_list(after_embedding_list, log1)
     embedding_end = datetime.now()
     log1.info("embedding time : %s  minutes", (embedding_end - embedding_start).seconds/60 )
@@ -37,7 +37,7 @@ def run_rerank(args, uie_list, word):
     text_list, num_list = get_text_list(uie_list)
     merged_list = merge_reasons(args, text_list, num_list, after_embedding_list)
     logpath2 = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/'
-    log2 = get_logger("merged_list",logpath2)
+    log2 = get_logger1("merged_list",logpath2)
     print_list(merged_list, log2)
     merge_end = datetime.now()
     log2.info("merge time : %s  minutes", (merge_end - merge_start).seconds/60 )
