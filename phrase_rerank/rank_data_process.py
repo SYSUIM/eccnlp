@@ -121,10 +121,8 @@ def get_text_list(uie_list):
     return text_list, num_list
 
 # O(N)
-def merge_reasons_new(args, text_list, num_list, uie_list):
-    
+def merge_reasons(args, text_list, num_list, uie_list):   
     merged_reasons = []
-
     # qid_map: key: value of number
     #          value： number index in uie_list
     qid_map = {}
@@ -175,9 +173,9 @@ def print_list(alist, log):
     for i in alist:
         log.info(i)
 
-def get_logger(name,logpath):
+def get_logger1(name,logpath):
     logger = logging.getLogger(name)
-    filename = f'{datetime.now().date()}_{name}.log'
+    filename = f'{datetime.now().strftime("%y_%m_%d_%H_%M_%S")}_{name}.log'
     fh = logging.FileHandler(logpath + filename, mode='w+', encoding='utf-8')
     formatter = logging.Formatter('%(message)s')
     logger.setLevel(logging.INFO)
@@ -187,7 +185,7 @@ def get_logger(name,logpath):
 
 def get_logger2(name, logpath):
     logger = logging.getLogger(name)
-    filename = f'{datetime.now().date()}_{name}.log'
+    filename = f'{datetime.now().strftime("%y_%m_%d_%H_%M_%S")}_{name}.log'
     fh = logging.FileHandler(logpath + filename, mode='a+', encoding='utf-8')
     formatter = logging.Formatter('%(asctime)s %(message)s')
     logger.setLevel(logging.INFO)
@@ -195,15 +193,14 @@ def get_logger2(name, logpath):
     logger.addHandler(fh)
     return logger
 
-def get_logger3(name,logpath):
-    logger = logging.getLogger(name)
-    filename = f'{datetime.now().date()}_{name}.txt'
-    fh = logging.FileHandler(logpath + filename, mode='w+', encoding='utf-8')
-    formatter = logging.Formatter('%(message)s')
-    logger.setLevel(logging.INFO)
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-    return logger
+def read_word(filepath):
+    alist = []
+    with open(filepath, "r", encoding="utf8") as f:
+        lines = f.readlines()
+        for line in lines:
+            line = line.strip()
+            alist.append(line)
+    return alist
 
 def string_similar(s1, s2):
     return difflib.SequenceMatcher(None, s1, s2).quick_ratio()
@@ -230,10 +227,10 @@ def normalize(a_list):
     return y
 
 
-def calculate_cot(j,vocab):
+def calculate_cot(uie_reason,vocab):
     cot=0
     for search_list in vocab:
-        if search_list in j["text"]:
+        if search_list in uie_reason:
             cot=cot+1
     return cot
    
@@ -304,7 +301,7 @@ def form_input_list(args, merged_list, vocab):
     all_rows=[]  
     pro_cnt=[]  # word cnt
     reason_list = []
-    key_num=-1  #标记quary
+    key_num=-1  
     lines = merged_list
     for i in range(len(lines)):
         data_pre = lines[i]
@@ -313,24 +310,23 @@ def form_input_list(args, merged_list, vocab):
         data=data_pre["output"][0]
         elem_num=len(data[args.type])        
         if elem_num>1:           # number of uie reason >1
-            lab_txt=data_pre["result_list"][0][0]["text"]   #  label text 
+            lab_txt=data_pre["result_list"][0]["text"]   #  label text 
             if len(lab_txt) != 0:
                 key_num+=1 #合法quary
                 line_elem=[]
                 write_reason(args, data, reason_list)                   
                 for j in data[args.type]:
-                    elem=[]  # feature
+                    elem=[]  # all features
                     tmp=string_similar(j["text"],lab_txt) 
                     #elem 每一维的含义
                     # 第0维：key_num  第一维：相似度  第二维：概率  第三维：词出现的次数
                     # 第四维：label（1，-1）  第5维：归一后的出现次数
-                    cot = calculate_cot(j,vocab)
+                    cot = calculate_cot(j["text"],vocab)
                     elem.extend([key_num, tmp, j["probability"], cot])
                     elem = elem + j["s_before"] + j["s_after"]              
                     pro_cnt.append(cot)
                     line_elem.append(elem)
                 all_rows = generate_label(line_elem,all_rows) 
-                # print(all_rows)
     cnt = normalize(pro_cnt)
     list_len=len(all_rows)
     all = form_input_vector(all_rows,cnt)
@@ -350,15 +346,14 @@ def form_predict_input_list(args, merged_list, vocab):
             continue
         data=data_pre["output"][0]
         elem_num=len(data[args.type])                   
-        if elem_num>1:          
-            lab_txt=data_pre["result_list"][0][0]["text"]
+        if elem_num > 0:          
             key_num+=1 
             line_elem=[]             
             for j in data[args.type]:
                 reasons.append(j["text"])
                 elem=[]
-                tmp=string_similar(j["text"],lab_txt) 
-                cot = calculate_cot(j,vocab)
+                tmp = 0
+                cot = calculate_cot(j["text"],vocab)
                 elem.extend([key_num, tmp, j["probability"], cot])  
                 elem = elem + j["s_before"] + j["s_after"]                  
                 pro_cnt.append(cot)
@@ -368,14 +363,6 @@ def form_predict_input_list(args, merged_list, vocab):
     all = form_input_vector(all_rows,cnt)
     all_list,train_list,test_list,useless_reason= form_input_data(args, all, reasons)
     return all_list, reasons
-
-def cmp(x,y):
-    if x>y:
-        return 1
-    if x<y:
-        return -1
-    else:
-        return 0
 
 
 if __name__ == "__main__":
@@ -393,7 +380,8 @@ if __name__ == "__main__":
 
     logpath = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/transfer/" 
 
-    filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2023-01-15_merge.txt'
+    # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2023-01-15_merge.txt'
+    filepath ='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/2023-03-02_merged_list.log'
     merged_list = read_list(filepath)
 
     if (args.usage == "train"):
