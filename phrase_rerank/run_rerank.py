@@ -1,22 +1,13 @@
 import argparse
 # import ..config
 # from data_process.dataprocess import re_pattern2, train_dataset, build_thesaurus
-from rank_data_process import get_logger, get_logger2, form_input_list, read_list, print_list, add_embedding, get_text_list, merge_reasons
+from rank_data_process import get_logger, get_logger2, form_input_list, read_list, print_list, add_embedding, get_text_list, merge_reasons, read_word
 import numpy as np
 from lambdarank import LambdaRank, train, validate, precision_k
 import torch
 from datetime import datetime
 # from ..data_process.dataprocess import build_thesaurus
 
-
-def read_word(filepath):
-    alist = []
-    with open(filepath, "r", encoding="utf8") as f:
-        lines = f.readlines()
-        for line in lines:
-            line = line.strip()
-            alist.append(line)
-    return alist
 
 # def update_thesaurus(args):
 #     raw_dataset = read_list_file(args.data)
