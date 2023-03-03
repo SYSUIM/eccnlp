@@ -6,13 +6,12 @@ import torch
 from datetime import datetime
 
 
-# def rerank_predict(args, uie_list):
 def rerank_predict1(args):
 
     predict_start = datetime.now()
     word = read_word(args.word_path)
 
-    #直接从合并好的文件开始执行
+    # begin with merged list
     filepath ='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/2023-03-02_merged_list.log'
     merged_list = read_list(filepath)
 
@@ -31,12 +30,30 @@ def rerank_predict1(args):
 
 def rerank_predict(args, uie_list):
 
-    # 从最原始的uie结果开始执行
+    # begin with uie result
     predict_start = datetime.now()
     word = read_word(args.word_path)
+
+    #embedding
+    embedding_start = datetime.now()
     after_embedding_list = add_embedding(args, uie_list)
+    logpath1 = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/embedding/'
+    log1 = get_logger1("pre_embedding_list",logpath1)
+    print_list(after_embedding_list, log1)
+    embedding_end = datetime.now()
+    log1.info("embedding time : %s  minutes", (embedding_end - embedding_start).seconds/60 )
+
+    #merge reasons
+    merge_start = datetime.now()
     text_list, num_list = get_text_list(uie_list)
     merged_list = merge_reasons(args, text_list, num_list, after_embedding_list)
+    logpath2 = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/'
+    log2 = get_logger1("pre_merged_list",logpath2)
+    print_list(merged_list, log2)
+    merge_end = datetime.now()
+    log2.info("merge time : %s  minutes", (merge_end - merge_start).seconds/60 )
+
+
 
     #predict   
     predict_list, reasons = form_predict_input_list(args, merged_list, word)
@@ -63,13 +80,13 @@ if __name__ == '__main__':
     parser.add_argument('--word_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.log',help='word path')
     args = parser.parse_args()
 
-    # 从最原始的uie结果开始执行
+    # begin with uie result
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
     # uie_list = read_list(filepath)
     # rerank_res = rerank_predict(args, uie_list)
 
 
-    # 直接从合并好的文件开始执行
+    # begin with merged list
     rerank_res = rerank_predict1(args)
 
     # nohup python rerank_predict.py > rerank_predict.out &
