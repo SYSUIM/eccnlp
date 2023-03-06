@@ -16,6 +16,15 @@ model_path = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/bert_model/pytorc
 vocab_path = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/bert_model/vocab.txt'
 
 
+def read_list_file(path: str) -> list:
+    data_list = []
+    with open(path, 'r') as f:
+        for line in f:
+            data_list.append(eval(line.strip('\n'), {'nan': ''}))
+    # logging.info(f'read {path} DONE. Length: {len(data_list)}')
+
+    return data_list
+
 def add_embedding(args, uie_list):
     textNet = BertTextNet(args.code_length)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -121,8 +130,10 @@ def get_text_list(uie_list):
     return text_list, num_list
 
 # O(N)
-def merge_reasons(args, text_list, num_list, uie_list):   
+def merge_reasons(args, text_list, num_list, uie_list):
+    
     merged_reasons = []
+
     # qid_map: key: value of number
     #          value： number index in uie_list
     qid_map = {}
@@ -136,6 +147,7 @@ def merge_reasons(args, text_list, num_list, uie_list):
         id_list = qid_map[num]  # a list of many short setences' indexes in uie_list
         dic = {}
         reasons = []
+        reason_set = set()
         res_list = []
         dic_rea={}
         for i in id_list:   # iterate over short setences' indexes of a qid
@@ -147,8 +159,10 @@ def merge_reasons(args, text_list, num_list, uie_list):
             data = data_pre["output"][0]
             if len(data) == 0 :
                 continue 
-            for k in data[args.type]:  # k: every uie reason
-                reasons.append(k)
+            for k in data[args.type]:  # k: every uie reason (dict)
+                if k['text'] not in reason_set:
+                    reasons.append(k)
+                    reason_set.add(k['text'])
         dic['raw_text'] = text_list[num_list.index(num)]
         dic['number'] = num
         dic['result_list'] = res_list
