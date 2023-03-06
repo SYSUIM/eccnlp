@@ -1,5 +1,5 @@
 import argparse
-from rank_data_process import get_logger1, get_logger2, form_input_list, read_list, print_list, add_embedding, get_text_list, merge_reasons, read_word
+from rank_data_process import get_logger1, get_logger2, form_input_list, read_list_file, print_list, add_embedding, get_text_list, merge_reasons, read_word
 import numpy as np
 from lambdarank import LambdaRank, train, validate, precision_k
 import torch
@@ -90,22 +90,24 @@ if __name__ == '__main__':
 
     # train rerank 
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/test.txt'
-    # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
+    filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
     # uie 结果路径
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/info.txt'
-    # uie_list = read_list(filepath)  
-    # run_rerank(args, uie_list, word)    
+    # filepath = ''
+
+    uie_list = read_list_file(filepath)  
+    run_rerank(args, uie_list, word)    
 
 
 
-    # only value
-    filepath ='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/2023-03-02_merged_list.log'
-    merged_list = read_list(filepath)
-    all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list, word)
-    training_data = np.array(all_list)
-    logpath3 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/train_lambdarank/" 
-    log3 = get_logger2('train_ndcg',logpath3)
-    modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter_bak.pkl'
-    run_value(args, test_list, modelpath, log3, 4)
+    # # only value
+    # filepath ='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/2023-03-02_merged_list.log'
+    # merged_list = read_list(filepath)
+    # all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list, word)
+    # training_data = np.array(all_list)
+    # logpath3 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/train_lambdarank/" 
+    # log3 = get_logger2('train_ndcg',logpath3)
+    # modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter_bak.pkl'
+    # run_value(args, test_list, modelpath, log3, 4)
 
 # nohup python run_rerank.py > run_rerank.out &
