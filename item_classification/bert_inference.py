@@ -6,17 +6,17 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 
 class MyDataset(Dataset):
-    def __init__(self, ids, texts):
-        self.texts = texts.to('cuda')
+    def __init__(self, ids, numbers):
+        self.numbers = numbers.to('cuda')
         self.ids = ids.to('cuda')
         
     def __len__(self):
-        return len(self.texts)
+        return len(self.numbers)
     
     def __getitem__(self, idx):
         return {'input_ids': self.ids['input_ids'][idx],
                 'attention_mask': self.ids['attention_mask'][idx],
-                'raw_text': self.texts[idx]}
+                'number': self.numbers[idx]}
 
 
 def generate_ids(args, data_list):
@@ -31,21 +31,24 @@ def generate_ids(args, data_list):
         add_special_tokens=True
     )
 
-    texts = torch.tensor([data['raw_text'] for data in data_list])
+    numbers = torch.tensor([data['number'] for data in data_list])
     
-    return ids, texts
+    return ids, numbers
 
 
 def bertForSequenceClassification(args, dataset):
     filtedDataset = []
+    number2rawtext = {}
+    for data in dataset:
+        number2rawtext[data['number']] = data
 
     model = BertForSequenceClassification.from_pretrained(
         args.bert_model_path,
         torch_dtype = "auto"
         ).to('cuda')
 
-    test_ids, test_texts = generate_ids(args, dataset)
-    test_dataset = MyDataset(test_ids, test_texts)
+    test_ids, test_numbers = generate_ids(args, dataset)
+    test_dataset = MyDataset(test_ids, test_numbers)
 
     test_dataloader = DataLoader(
         dataset = test_dataset,
@@ -58,7 +61,7 @@ def bertForSequenceClassification(args, dataset):
             logits = model(**data).logits
             predicts = [(logit.argmax().item()) for logit in logits]
 
-            filted_text = [data['raw_text'][i] for i in range(len(predicts)) if predicts[i] == 1]
+            filted_text = [number2rawtext[data['number'][i]] for i in range(len(predicts)) if predicts[i] == 1]
             filtedDataset.extend(filted_text)
 
     return filtedDataset
