@@ -36,11 +36,12 @@ def get_arguments():
     parser.add_argument('--val_size', default=0.2, type=float, help='ratio of train data')
     parser.add_argument('--test_size', default=0.2, type=float, help='ratio of train data')
     parser.add_argument("--sampling_seed", default=10, type=int, help="Random seed for sampling data")
-    # parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
+    parser.add_argument('--predict_data', type=str, required=True, help='path of predict data')
     parser.add_argument("--classification_model_seed", default=1, type=int, help="Random seed for initializing classification model")
     parser.add_argument('--model', choices=["TextCNN", "TextRNN", "FastText", "TextRCNN", "TextRNN_Att", "DPCNN", "Transformer", "EnsembleModel"], type=str, required=True, help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
     parser.add_argument('--ensemble_models', type=str, nargs='+', help='ensemdble some models')
-    # parser.add_argument('--num_ensemble', default=9, type=int, help='The number of ensembling single model')
+    parser.add_argument('--num_ensemble', default=8, type=int, help='The number of ensembling single model by soft voting.')
+    parser.add_argument('--ensemble_date', default='03.03', type=str, help='The date of ensembling double models to loading saved models.')
     parser.add_argument('--embedding', default='pre_trained', type=str, help='Random or pre_trained')
     parser.add_argument('--word', default=False, type=bool, help='True for word, False for char')
     parser.add_argument('--num_epochs', default=20, type=int, help='Total number of training epochs to perform.')
@@ -122,8 +123,8 @@ def get_arguments():
 def re_filter(dataset) -> list:
     for i in range(len(dataset)):
         dataset[i]['predict_非业绩归因'] = 0  # predict业绩归因
-        if dataset[i]['in_Acntet']==0 & dataset[i]['label'] ==1:
-            dataset[i]['predict_非业绩归因']=0                
+        # if dataset[i]['in_Acntet']==0 & dataset[i]['label'] ==1:
+        #     dataset[i]['predict_非业绩归因']=0                
         dataset[i]['length']=len(dataset[i]['raw_text']) #length 
 
          # 定义业绩归因表达式
@@ -162,9 +163,15 @@ def re_filter(dataset) -> list:
         if re.match(pattern5,dataset[i]['raw_text']):
             dataset[i]['predict_非业绩归因'] = 1
 
-        dataset[i].pop('in_Acntet')
+        # dataset[i].pop('in_Acntet')
         dataset[i].pop('length')
-    return dataset
+    
+    dataset1=[]
+    for i in range(len(dataset)):
+        if dataset[i]['predict_非业绩归因'] == 0:
+            dataset[i].pop('predict_非业绩归因')
+            dataset1.append(dataset[i])
+    return dataset1
 
 if __name__ == '__main__':
     get_arguments()
