@@ -18,6 +18,14 @@ def get_arguments():
     parser = argparse.ArgumentParser(description='eccnlp')
 
     '''
+    here are parameters for bert-base-chinese Classification
+    '''
+    parser.add_argument('--bert_tokenizer_path', type = str, required = True, help='model path of trained bert')
+    parser.add_argument('--bert_model_path', type = str, required = True, help='model path of trained bert')
+    parser.add_argument('--bert_batch_size', type = int, default = 64, help='batch size of bert')
+
+
+    '''
     here are parameters for Chinese Text Classification
     '''
     parser.add_argument('--data', type=str, required=True, help='path of raw data')
@@ -46,7 +54,8 @@ def get_arguments():
     here are parameters for Information Extraction
     '''
     # for evaluate.py
-    parser.add_argument('--device', choices=['cpu', 'gpu'], default="gpu", help="Select which device to train model, defaults to gpu.")
+    # parser.add_argument('--device', choices=['cpu', 'gpu'], default="gpu", help="Select which device to train model, defaults to gpu.")
+    parser.add_argument('--device', type = str, default="gpu", help="Select which device to train model, defaults to gpu.")
     parser.add_argument("--model_path", type=str, default=None, help="The path of saved model that you want to load.")
     parser.add_argument("--test_path", type=str, default=None, help="The path of test set.")
     parser.add_argument("--UIE_batch_size", type=int, default=16, help="Batch size per GPU/CPU for training.")
