@@ -1,15 +1,6 @@
 import re
-from utils import read_list_file, split_dataset
+from utils import split_dataset
 
-# def read_file(path: str) -> list:
-#     data_list = []
-#     with open(path, 'r') as f:
-#         for line in f:
-#             data_list.append(eval(line.strip('\n'), {'nan': ''}))
-
-#     print(len(data_list))
-
-#     return data_list
 
 def data_filter(data_list: list) -> set:
     filted_data = set()
@@ -95,13 +86,20 @@ def dataset_split(args, data_list: list):
 
     return train_data, dev_data, test_data
 
+
 def dataset_generate_train(args, data_list):
-    filted_data = data_filter(data_list)    
+    from utils import get_logger, get_log_path
+    ext_logger = get_logger('ext_logger', get_log_path() + '/ext.log')
+
+    filted_data = data_filter(data_list)
+    ext_logger.info(f'raw_data length: {len(data_list)}, filted_data length: {len(filted_data)}')
+
     cutted_data = data_process(filted_data, data_list)
+    ext_logger.info(f'generate datasetlength: {len(cutted_data)}')
+
     train_data, dev_data, test_data = dataset_split(args, cutted_data)
 
     return train_data, dev_data, test_data
-    # return cutted_data
 
 
 if __name__ == '__main__':
