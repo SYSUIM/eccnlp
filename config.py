@@ -49,7 +49,8 @@ def get_arguments():
     here are parameters for Information Extraction
     '''
     # for evaluate.py
-    parser.add_argument('--device', choices=['cpu', 'gpu'], default="gpu", help="Select which device to train model, defaults to gpu.")
+    # parser.add_argument('--device', choices=['cpu', 'gpu'], default="gpu", help="Select which device to train model, defaults to gpu.")
+    parser.add_argument('--device', default="gpu", help="Select which device to train model, defaults to gpu.")
     parser.add_argument("--model_path", type=str, default=None, help="The path of saved model that you want to load.")
     parser.add_argument("--test_path", type=str, default=None, help="The path of test set.")
     parser.add_argument("--UIE_batch_size", type=int, default=16, help="Batch size per GPU/CPU for training.")
@@ -101,8 +102,6 @@ def get_arguments():
 
 
     args = parser.parse_args()
-    args_message = '\n'.join([f'{k:<20}: {v}' for k, v in vars(args).items()])
-    logging.info(f'\n{args_message}')
 
     return args
 
