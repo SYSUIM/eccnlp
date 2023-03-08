@@ -1,29 +1,12 @@
 import argparse
-# import ..config
-# from data_process.dataprocess import re_pattern2, train_dataset, build_thesaurus
-from rank_data_process import get_logger1, get_logger2, form_input_list, read_list, print_list, add_embedding, get_text_list, merge_reasons, read_word
+from rank_data_process import get_logger1, get_logger2, form_input_list, read_list_file, print_list, add_embedding, get_text_list, merge_reasons, read_word
 import numpy as np
 from lambdarank import LambdaRank, train, validate, precision_k
 import torch
 from datetime import datetime
-# from ..data_process.dataprocess import build_thesaurus
 
+def run_embedding(args, uie_list):
 
-# def update_thesaurus(args):
-#     raw_dataset = read_list_file(args.data)
-#     dataset = re_filter(raw_dataset)
-#     t_path = '/data/fkj2023/Project/eccnlp_local/data_process/stop_words.txt'
-#     word = build_thesaurus(dataset, t_path)
-#     logpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/word/'
-#     log = get_logger('word',logpath)
-#     print_list(word, log)
-#     return word
-
-
-#rerank
-def run_rerank(args, uie_list, word):
-    
-    #embedding
     embedding_start = datetime.now()
     after_embedding_list = add_embedding(args, uie_list)
     logpath1 = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/embedding/'
@@ -32,7 +15,10 @@ def run_rerank(args, uie_list, word):
     embedding_end = datetime.now()
     log1.info("embedding time : %s  minutes", (embedding_end - embedding_start).seconds/60 )
 
-    #merge reasons
+    return after_embedding_list
+
+def run_merge(args, uie_list, after_embedding_list):
+
     merge_start = datetime.now()
     text_list, num_list = get_text_list(uie_list)
     merged_list = merge_reasons(args, text_list, num_list, after_embedding_list)
@@ -42,10 +28,12 @@ def run_rerank(args, uie_list, word):
     merge_end = datetime.now()
     log2.info("merge time : %s  minutes", (merge_end - merge_start).seconds/60 )
 
-    #train
+    return merged_list
+
+def run_train(args, merged_list, word):
+
     train_start = datetime.now()
     logpath3 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/train_lambdarank/" 
-    # log3 = get_logger2('test_pythorch_main_res',logpath3)
     log3 = get_logger2('train_ndcg',logpath3)
     epoch = 10
     learning_rate = 0.0001
@@ -54,21 +42,38 @@ def run_rerank(args, uie_list, word):
     model = LambdaRank(training_data)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-    modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter'+datetime.now().strftime("%m_%d_%H_%M_%S")+'.pkl'
+    modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter'+datetime.now().strftime("%Y-%m-%d_%H_%M_%S")+'.pkl'
     train(training_data, learning_rate, epoch, modelpath, device, model, log3)
     train_end = datetime.now()
-    log3.info("train time : %s  minutes", (train_end - train_start).seconds/60 )
+    log3.info("train time : %s  minutes", (train_end - train_start).seconds/60 )    
 
-    # value
+    return test_list, modelpath, log3
+
+def run_value(args, test_list, modelpath, log3, k):
+
     value_start = datetime.now()
     validate_data = np.array(test_list)
-    k = 2
+    # k = 2
     ndcg , pred_scores= validate(validate_data, k, modelpath)
     # log3.info("pred_scores: %s", pred_scores)
-    log3.info("np.nanmean(ndcg): %s", np.nanmean(ndcg))
+    log3.info("np.nanmean(ndcg %s): %s", k, np.nanmean(ndcg))
     precision_k(validate_data, modelpath, log3)
     value_end = datetime.now()
     log3.info("value time : %s  minutes", (value_end - value_start).seconds/60 )
+    log3.info("lambdarank model path : %s", modelpath)
+
+    return 
+
+def run_rerank(args, uie_list, word):
+
+    after_embedding_list = run_embedding(args, uie_list)
+    merged_list = run_merge(args, uie_list, after_embedding_list)
+    test_list, modelpath, log3 = run_train(args, merged_list, word)
+    run_value(args, test_list, modelpath, log3, 2)
+
+    return
+
+
 
 
 if __name__ == '__main__':
@@ -80,12 +85,29 @@ if __name__ == '__main__':
     parser.add_argument('--code_length', type=int, default=16,help='the dimension of sentence features') 
     args = parser.parse_args()
 
+    word = read_word('/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.log')
+
+
+    # train rerank 
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/test.txt'
     filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
     # uie 结果路径
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/info.txt'
+    # filepath = ''
 
-    uie_list = read_list(filepath)
-    # word = update_thesaurus(args)
-    word = read_word('/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.log')
+    uie_list = read_list_file(filepath)  
     run_rerank(args, uie_list, word)    
+
+
+
+    # # only evaluate
+    # filepath ='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/2023-03-02_merged_list.log'
+    # merged_list = read_list(filepath)
+    # all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list, word)
+    # training_data = np.array(all_list)
+    # logpath3 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/train_lambdarank/" 
+    # log3 = get_logger2('train_ndcg',logpath3)
+    # modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter_bak.pkl'
+    # run_value(args, test_list, modelpath, log3, 4)
+
+# nohup python run_rerank.py > run_rerank.out &

@@ -22,7 +22,7 @@ from info_extraction.inference import extraction_inference
 
 from data_process.info_extraction import dataset_generate_train
 
-from phrase_rerank.rank_data_process import get_logger1,  form_predict_input_list, add_embedding, get_text_list, merge_reasons,read_word
+from phrase_rerank.rank_data_process import get_logger1,  form_predict_input_list, add_embedding, get_text_list, merge_reasons,read_word, print_list
 from phrase_rerank.lambdarank import LambdaRank, add_rerank, predict
 import numpy as np
 
@@ -45,16 +45,21 @@ def extraction(args, dataset):
     return result
 
 def rerank_predict(args, uie_list):
+    logpath4 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/inference/" 
+    log1 = get_logger1('embedding',logpath4)
+    log2 = get_logger1('merge',logpath4)
+    log3 = get_logger1('inference_add_rerank',logpath4)
+
     word = read_word(args.word_path)
     after_embedding_list = add_embedding(args, uie_list)
+    print_list(after_embedding_list, log1)
     text_list, num_list = get_text_list(uie_list)
     merged_list = merge_reasons(args, text_list, num_list, after_embedding_list)
+    print_list(merged_list, log2)
     predict_list, reasons = form_predict_input_list(args, merged_list, word)
     predict_data = np.array(predict_list)
     predicted_list, rerank_reasons, rerank_scores = predict(args, predict_data, reasons)
-    logpath4 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/predict/" 
-    log4 = get_logger1('inference_add_rerank',logpath4)
-    res = add_rerank(args, rerank_reasons,rerank_scores, merged_list, log4)
+    res = add_rerank(args, rerank_reasons,rerank_scores, merged_list, log3)
     return res
 
 
