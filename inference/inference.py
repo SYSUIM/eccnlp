@@ -1,12 +1,23 @@
+import os
+import config
+args = config.get_arguments()
+
+if args.device[-1].isdigit():
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.devive[-1]
+else:
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
 import sys
 sys.path.append('/data/pzy2022/project/eccnlp')
 # sys.path.append('/data/fkj2023/Project/eccnlp')
-import config
-from config import re_filter
 
+from config import re_filter
 from utils import read_list_file, split_dataset, evaluate_sentence
 
 import logging
+
+from item_classification.bert_inference import bertForSequenceClassification
+
 from info_extraction.inference import extraction_inference
 
 from data_process.info_extraction import dataset_generate_train
@@ -20,6 +31,11 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(module)s[line:%(lineno)d]: >> %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+
+def bertFilter(args, dataset):
+    filtedDataset = bertForSequenceClassification(args, dataset)
+
+    return filtedDataset
 
 def classification():
     return
@@ -50,17 +66,23 @@ def rerank_predict(args, uie_list):
 
 if __name__ == '__main__':
     args = config.get_arguments()
+    
 
-    dataset = read_list_file(args.data)
-    # clf = read_list_file('/data/xf2022/Projects/eccnlp_local/data/result_data/result_data2.0_TextRCNN2022_12_21_15_37.txt')
+    # dataset = read_list_file(args.data)
+    dataset = read_list_file('/data/xf2022/Projects/eccnlp_local/data/result_data/3.1_result_dict_predict20.46.txt')
 
     logging.info(f'length of raw dataset: {len(dataset)}')
 
     dataset = re_filter(dataset)
-    train_data, dev_data, test_data = dataset_generate_train(args, dataset)
-    logging.info(f'{len(dataset)} samples left after re_filter')
+
+    filtedDataset = bertFilter(args, dataset)
+
+    # train_data, dev_data, test_data = dataset_generate_train(args, dataset)
+    # logging.info(f'{len(dataset)} samples left after re_filter')
     
-    result = extraction(args, test_data)
+    result = extraction(None, filtedDataset)
+    with open("./after_extraction_data3.1DoubleEnsemble.txt", 'w') as f:
+        [f.write(str(data) + '\n') for data in result]
     # # evaluate_sentence(result, clf)
 
 
@@ -69,6 +91,6 @@ if __name__ == '__main__':
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
     # uie_list = read_list_file(filepath)
     # rerank_res = rerank_predict(args, uie_list)
-    rerank_res = rerank_predict(args, result)
+    # rerank_res = rerank_predict(args, result)
 
 
