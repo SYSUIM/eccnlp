@@ -1,7 +1,7 @@
 import os
 import argparse
 import logging
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 
 from utils import read_list_file, evaluate_sentence, get_logger, check_log_dir, split_train_datasets
 import config
@@ -77,7 +77,7 @@ def text_classification(args, data):
     # return p_dataset
 
 
-def ensemble_text_classification(args, data):
+def ensemble_text_classification(args, dataset):
     # dataset = train_dataset(data, args)
     train_dict, val_dict, test_dict = split_dataset(dataset, args)
     train_list, dev_list, test_list, train_dict, val_dict, test_dict = classification_dataset(train_dict,val_dict,test_dict, args)
@@ -194,6 +194,13 @@ if __name__ == '__main__':
     # waiting for re filter...
     dataset = re_filter(raw_dataset)
     main_logger.info(f'{len(raw_dataset) - len(dataset)} samples are filted by re_filter')
+    res = ensemble_text_classification(args, dataset)
+    for i in res:
+        print(i)
+    exit(0)
+
+
+
 
     # all_dict = text_classification(args)
     # all_dict = ensemble_text_classification(args, dataset)
@@ -208,21 +215,43 @@ if __name__ == '__main__':
     #     [f.write(str(data) + '\n') for data in test]
     # exit(0)
 
-    main_logger.info(f'parent pid: {os.getpid()}')
-    processes = [
-        Process(target = ensemble_text_classification, args = (args, dataset)),
-        # Process(target = ensemble_double_classifications, args = (args, dataset)),
-        Process(target = run_information_extraction, args = (args, dataset))
-    ]
+    # main_logger.info(f'parent pid: {os.getpid()}')
+    # processes = [
+    #     Process(target = ensemble_text_classification, args = (args, dataset)),
+    #     # Process(target = ensemble_double_classifications, args = (args, dataset)),
+    #     Process(target = run_information_extraction, args = (args, dataset))
+    # ]
 
-    [p.start() for p in processes]
-    [main_logger.info(f'{p} pid is: {p.pid}') for p in processes]
-    [p.join() for p in processes]
-    classification_result, extraction_result = [p.get() for p in processes]
+    # [p.start() for p in processes]
+    # [main_logger.info(f'{p} pid is: {p.pid}') for p in processes]
+    # [p.join() for p in processes]
+    # classification_result, extraction_result = [p.get() for p in processes]
 
     # evaluate for sentences after extraction
     # evaluate_sentence(extraction_result, classification_result)
-  
+    pool = Pool(2)
+    main_logger.info(f'parent pid: {os.getpid()}')
+    result_list = []
+    result_list.append(pool.apply_async(func = ensemble_double_classifications, args = (args, dataset)))
+    result_list.append(pool.apply_async(func = run_information_extraction, args = (args, dataset)))
+    pool.close()
+    pool.join()
+    classification_result = result_list[0].get()
+    print("======================================classification_result======================================")
+    # print(extraction_result)
+    for i in classification_result:
+        print(i)
+
+    extraction_result = result_list[1].get()
+    uie_list = []
+    for i in extraction_result:
+        uie_list = uie_list + i
+
+    print("======================================extraction_result======================================")
+    # print(extraction_result)
+    for i in uie_list:
+        print(i)
+    print("===========================end==============")
 
     # run_rerank
     word = build_thesaurus(dataset, args.t_path)
@@ -230,7 +259,17 @@ if __name__ == '__main__':
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
     # uie_list = read_list_file(filepath)
     # run_rerank(args, uie_list, word)  
-    run_rerank(args, extraction_result, word)
+    run_rerank(args, uie_list, word)
 
-
+"""
+    # 跑通了，...
+    res = run_information_extraction(args, dataset)
+    uie_list = []
+    for i in res:
+        uie_list = uie_list + i
+    # run_rerank
+    word = build_thesaurus(dataset, args.t_path)
+    run_rerank(args, uie_list, word)
+    exit(0)
+"""
     
