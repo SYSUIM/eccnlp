@@ -38,9 +38,9 @@ def generate_ids(args, data_list):
 
 def bertForSequenceClassification(args, dataset):
     filtedDataset = []
-    number2rawtext = {}
+    number2dict = {}
     for data in dataset:
-        number2rawtext[data['number']] = data
+        number2dict[data['number']] = data
 
     model = BertForSequenceClassification.from_pretrained(
         args.bert_model_path,
@@ -58,10 +58,15 @@ def bertForSequenceClassification(args, dataset):
     
     with torch.no_grad():
         for _, data in enumerate(test_dataloader):
-            logits = model(**data).logits
+            input_keys = ('input_ids', 'attention_mask')
+            input = {key: value for key, value in data.items() if key in input_keys}
+
+            logits = model(**input).logits
             predicts = [(logit.argmax().item()) for logit in logits]
 
-            filted_text = [number2rawtext[data['number'][i]] for i in range(len(predicts)) if predicts[i] == 1]
+            numbers = data['numbers'].to('cpu').numpy().tolist()
+
+            filted_text = [number2dict[numbers[i]] for i in range(len(predicts)) if predicts[i] == 1]
             filtedDataset.extend(filted_text)
 
     return filtedDataset    
