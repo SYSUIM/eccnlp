@@ -107,9 +107,7 @@ def get_arguments():
 
 def re_filter(dataset) -> list:
     for i in range(len(dataset)):
-        dataset[i]['predict_非业绩归因'] = 0  # predict业绩归因
-        if dataset[i]['in_Acntet']==0 & dataset[i]['label'] ==1:
-            dataset[i]['predict_非业绩归因']=0                
+        dataset[i]['predict_非业绩归因'] = 0  # predict业绩归因             
         dataset[i]['length']=len(dataset[i]['raw_text']) #length 
 
          # 定义业绩归因表达式
@@ -148,7 +146,6 @@ def re_filter(dataset) -> list:
         if re.match(pattern5,dataset[i]['raw_text']):
             dataset[i]['predict_非业绩归因'] = 1
 
-        dataset[i].pop('in_Acntet')
         dataset[i].pop('length')
 
     dataset1=[]
