@@ -31,7 +31,7 @@ def ensemble_classification_model(train_list, dev_list, test_list, args):
     # logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(message)s')
 
     # 回答文本:pre_trained, 随机初始化:random
-    embedding = 'pre_trained'
+    embedding = 'embedding_answer.npz'
     if args.embedding == 'random':
         embedding = 'random'
     # model_name = args.model  # 'TextRCNN'  # TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer
@@ -42,15 +42,15 @@ def ensemble_classification_model(train_list, dev_list, test_list, args):
     #     embedding = 'random'
     # else:
     #     from item_classification.utils import build_dataset, build_iterator, get_time_dif, get_utils
-
-    embeddings_pretrained = get_utils(train_list)
+    filename_trimmed_dir = '/data/xf2022/Projects/eccnlp_local/data/embedding_answer'
+    embeddings_pretrained = get_utils(train_list, filename_trimmed_dir)
 
     # models = ['TextCNN', 'TextRNN', 'TextRCNN', 'TextRNN_Att', 'DPCNN']
     raw_labels = []     #原标签
     predict_labels = []   #所有模型的预测值
 
     x = import_module('item_classification.model.' + args.model)
-    config = x.Config(train_list, dev_list, test_list, embeddings_pretrained, embedding, args)
+    config = x.Config(train_list, dev_list, test_list, embedding, args)
     np.random.seed(args.classification_model_seed)
     torch.manual_seed(args.classification_model_seed)
     torch.cuda.manual_seed_all(args.classification_model_seed)
@@ -68,7 +68,7 @@ def ensemble_classification_model(train_list, dev_list, test_list, args):
     for i, model_name in enumerate(args.ensemble_models):
         logging.info('-'*30 + str(i) + ' ' + model_name + '-'*30)
         x = import_module('item_classification.model.' + model_name)
-        config = x.Config(train_list, dev_list, test_list, embeddings_pretrained, embedding, args)
+        config = x.Config(train_list, dev_list, test_list, embedding, args)
         # np.random.seed(args.classification_model_seed)
         # torch.manual_seed(args.classification_model_seed)
         # torch.cuda.manual_seed_all(args.classification_model_seed)

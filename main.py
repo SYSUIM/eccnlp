@@ -3,17 +3,17 @@ import argparse
 import logging
 from multiprocessing import Process
 
-from utils import read_list_file, evaluate_sentence, get_logger, check_log_dir
+from utils import read_list_file, evaluate_sentence, get_logger, check_log_dir, split_train_datasets
 import config
 from config import re_filter
 
 # data preprocess
-from data_process.dataprocess import re_pattern1, re_pattern2, train_dataset, split_dataset, classification_dataset
+from data_process.dataprocess import re_pattern1, re_pattern2, train_dataset, split_dataset, classification_dataset, dict_to_list
 
 # item classification
 from item_classification.run_classification_model import run_classification_model
 from item_classification.ensemble_models import ensemble_classification_model
-# from item_classification.ensemble_single_model import ensemble_single_model
+from item_classification.ensemble_double_models import ensemble_double_models
 
 # information extraction
 from info_extraction.finetune import do_train
@@ -95,6 +95,39 @@ def ensemble_text_classification(args, data):
     return all_dict
 
 
+def ensemble_double_classifications(args, dataset):
+    train_dict, val_dict, test_dict = split_dataset(dataset,args)
+    logging.info("split all dataset completed.")
+    # test_dict = read_list_file(args.predict_data)
+    # logging.info(f'length of raw dataset: {len(test_dict)}')
+    train_datasets = split_train_datasets(train_dict, args)
+    logging.info("split train dataset completed.")
+    dev_datasets = split_train_datasets(val_dict, args)
+    logging.info("split dev dataset completed.")
+    train_lists, dev_lists = [], []
+    for i in range(len(train_datasets)):
+        train_lists.append(dict_to_list(train_datasets[i]))
+        dev_lists.append(dict_to_list(dev_datasets[i]))
+    logging.info("train and dev datasets into lists completed.")
+    test_list = dict_to_list(test_dict)
+    logging.info("test dataset into list completed.")
+
+    predict_test = ensemble_double_models(train_lists, dev_lists, test_list, args)
+
+    for i in range(len(predict_test)):
+        test_dict[i]['label'] = predict_test[i]
+    all_dict = []
+    all_dict.extend(train_dict)
+    all_dict.extend(val_dict)
+    all_dict.extend(test_dict)
+
+    # with open("./data/result_data/2.1_result_dict_DoubleEnsemble0308.txt", 'w', encoding='utf8') as f:
+    #     for i in range(len(all_dict)):
+    #         f.write(str(all_dict[i]) + '\n')
+
+    return all_dict
+
+
 def run_information_extraction(args, data):
     train_data, dev_data, test_data = dataset_generate_train(args, data)
     main_logger.info(f'train_data: {len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
@@ -163,6 +196,10 @@ if __name__ == '__main__':
     # all_dict = text_classification(args)
     # all_dict = ensemble_text_classification(args, dataset)
     # logging.info('ensemble_text_classification training completed.')
+    
+    # waiting for ensemble double models...
+    # all_dict = ensemble_double_classifications(args, dataset)
+    # logging.info(f"all dict nums:{len(all_dict)}")
 
     # test = run_information_extraction(args, dataset)
     # with open("./20220228.txt", 'w') as f:
@@ -172,6 +209,7 @@ if __name__ == '__main__':
     main_logger.info(f'parent pid: {os.getpid()}')
     processes = [
         Process(target = ensemble_text_classification, args = (args, dataset)),
+        # Process(target = ensemble_double_classifications, args = (args, dataset)),
         Process(target = run_information_extraction, args = (args, dataset))
     ]
 

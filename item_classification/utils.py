@@ -30,7 +30,11 @@ def build_dataset(config, ues_word):
         tokenizer = lambda x: x.split(' ')  # 以空格隔开，word-level
     else:
         tokenizer = lambda x: [y for y in x]  # char-level
-    vocab = build_vocab(config.train_list, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
+    if os.path.exists(config.vocab_path):
+        vocab = pkl.load(open(config.vocab_path, 'rb'))
+    else:
+        vocab = build_vocab(config.train_list, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
+        pkl.dump(vocab, open(config.vocab_path, 'wb'))
     logging.info(f"Vocab size: {len(vocab)}")
 
     # 传入list格式
@@ -115,15 +119,16 @@ def get_time_dif(start_time):
     return timedelta(seconds=int(round(time_dif)))
 
 
-def get_utils(train_list):
+def get_utils(train_list, filename_trimmed_dir):
     '''提取预训练词向量'''
-    pretrain_dir = "/data/xf2022/Projects/eccnlp_local/data/sgns.financial.char"
+    pretrain_dir = "./data/sgns.financial.char"
     emb_dim = 300
     # tokenizer = lambda x: x.split(' ')  # 以词为单位构建词表(数据集中词之间以空格隔开)
     tokenizer = lambda x: [y for y in x]  # 以字为单位构建词表
     word_to_id = build_vocab(train_list, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
 
-    embeddings_pretrained = np.random.rand(len(word_to_id), emb_dim)
+    np.random.seed(1)
+    embeddings = np.random.rand(len(word_to_id), emb_dim)
     with open(pretrain_dir, "r", encoding='UTF-8') as f:
         for i, line in enumerate(f.readlines()):
             # if i == 0:  # 若第一行是标题，则跳过
@@ -132,5 +137,6 @@ def get_utils(train_list):
             if lin[0] in word_to_id:
                 idx = word_to_id[lin[0]]
                 emb = [float(x) for x in lin[1:301]]
-                embeddings_pretrained[idx] = np.asarray(emb, dtype='float32')
-    return embeddings_pretrained
+                embeddings[idx] = np.asarray(emb, dtype='float32')
+    np.savez_compressed(filename_trimmed_dir, embeddings=embeddings)
+    return embeddings
