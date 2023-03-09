@@ -18,7 +18,7 @@ from data_process.dataprocess import train_dataset, split_dataset, classificatio
 
 import logging
 
-# from item_classification.bert_inference import bertForSequenceClassification
+from item_classification.bert_inference import bertForSequenceClassification
 
 from item_classification.classification_model_predict import classification_models_predict
 
@@ -57,7 +57,7 @@ def classification(args, dataset):
     return dataset
 
 def extraction(args, dataset):
-    result = extraction_inference(args, dataset)
+    result, _, _ = extraction_inference(args, dataset, None, None)
     return result
 
 def rerank_predict(args, uie_list):
