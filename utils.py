@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import random
 
 import numpy as np
 import pandas as pd
@@ -201,7 +202,37 @@ def evaluate_sentence(result_list, classification_list):
         
     classification_report_actual = classification_report(true, predict)
     logging.info(f'\n{classification_report_actual}')
+
+
+def split_train_datasets(data_dict, args) -> list:
+    '''
+    Split the train_dataset or dev_dataset into N copies, each of them is an upsampling dataset.
+    '''
+    for i in range(len(data_dict)):
+        data_dict0 = []
+        data_dict1 = []
+        # 记录正负样本数
+        for i in range(len(data_dict)):
+            if data_dict[i]['label'] == 0:
+                data_dict0.append(data_dict[i])
+            else:
+                data_dict1.append(data_dict[i])
+                
+    data_num1 = len(data_dict1)
+    data_num0 = len(data_dict0)
+    dataset_nums = data_num0 // data_num1
+
+    train_datasets = []
+    for i in range(dataset_nums):
+        temp_dataset = []
+        temp_dataset.extend(data_dict1)
+        temp_dataset.extend(data_dict0[i*data_num1:(i+1)*data_num1])
+        random.seed(10)
+        random.shuffle(temp_dataset)
+        train_datasets.append(temp_dataset)
     
+    return train_datasets
+
 
 if __name__ == '__main__':
     # test for read_list_file
