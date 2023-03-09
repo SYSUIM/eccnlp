@@ -131,10 +131,12 @@ def ensemble_double_classifications(args, dataset):
 def run_information_extraction(args, data):
     train_data, dev_data, test_data = dataset_generate_train(args, data)
     main_logger.info(f'train_data: {len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
+
     do_train(args, train_data, dev_data)
-    result_on_test_data = extraction_inference(args, test_data)
     
-    return result_on_test_data
+    result_on_train_data, result_on_dev_data, result_on_test_data = extraction_inference(args, train_data, dev_data, test_data)
+    
+    return result_on_train_data, result_on_dev_data, result_on_test_data
 
 
 
