@@ -64,5 +64,4 @@ def bertForSequenceClassification(args, dataset):
             filted_text = [number2rawtext[data['number'][i]] for i in range(len(predicts)) if predicts[i] == 1]
             filtedDataset.extend(filted_text)
 
-    return filtedDataset
-
+    return filtedDataset    
