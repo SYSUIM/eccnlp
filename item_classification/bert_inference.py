@@ -16,7 +16,7 @@ class MyDataset(Dataset):
     def __getitem__(self, idx):
         return {'input_ids': self.ids['input_ids'][idx],
                 'attention_mask': self.ids['attention_mask'][idx],
-                'number': self.numbers[idx]}
+                'numbers': self.numbers[idx]}
 
 
 def generate_ids(args, data_list):
