@@ -1,17 +1,17 @@
 import os
 import config
-# args = config.get_arguments()
+args = config.get_arguments()
 
-# if args.device[-1].isdigit():
-#     os.environ['CUDA_VISIBLE_DEVICES'] = args.device[-1]
-# else:
-#     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+if args.device[-1].isdigit():
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.device[-1]
+else:
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 import sys
-sys.path.append('/data/pzy2022/project/eccnlp')
-sys.path.append('../')
-# sys.path.append('/data/fkj2023/Project/eccnlp')
+# sys.path.append('/data/pzy2022/project/eccnlp')
 
+sys.path.append('/data/fkj2023/Project/eccnlp')
+# sys.path.append('../')
 from config import re_filter
 from utils import read_list_file, split_dataset, evaluate_sentence
 from data_process.dataprocess import train_dataset, split_dataset, classification_dataset, dict_to_list
@@ -26,7 +26,7 @@ from info_extraction.inference import extraction_inference
 
 # from data_process.info_extraction import dataset_generate_train
 
-# from phrase_rerank.rank_data_process import get_logger1,  form_predict_input_list, add_embedding, get_text_list, merge_reasons,read_word, print_list
+from phrase_rerank.rank_data_process import get_logger1,  form_predict_input_list, add_embedding, get_text_list, merge_reasons,read_word, print_list
 from phrase_rerank.lambdarank import LambdaRank, add_rerank, predict
 import numpy as np
 
@@ -62,9 +62,9 @@ def extraction(args, dataset):
 
 def rerank_predict(args, uie_list):
     logpath4 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/inference/" 
-    log1 = get_logger1('embedding',logpath4)
-    log2 = get_logger1('merge',logpath4)
-    log3 = get_logger1('inference_add_rerank',logpath4)
+    log1 = get_logger1('3.1_embedding',logpath4)
+    log2 = get_logger1('3.1_merge',logpath4)
+    log3 = get_logger1('3.1_inference_add_rerank',logpath4)
 
     word = read_word(args.word_path)
     after_embedding_list = add_embedding(args, uie_list)
@@ -84,31 +84,31 @@ if __name__ == '__main__':
     args = config.get_arguments()
     
     # read predict data...
-    predict_dataset = read_list_file(args.predict_data)
-    logging.info(f'length of raw dataset: {len(predict_dataset)}')
+    # predict_dataset = read_list_file(args.predict_data)
+    # logging.info(f'length of raw dataset: {len(predict_dataset)}')
 
-    # waiting for re filter...
-    dataset = re_filter(predict_dataset)
-    logging.info(f'{len(predict_dataset) - len(dataset)} samples are filted by re_filter')
-    logging.info(f'all dataset dict nums:{len(dataset)}')
+    # # waiting for re filter...
+    # dataset = re_filter(predict_dataset)
+    # logging.info(f'{len(predict_dataset) - len(dataset)} samples are filted by re_filter')
+    # logging.info(f'all dataset dict nums:{len(dataset)}')
     
-    dataset = classification(args, dataset)
-    logging.info('double ensemble predict completed.')
+    # dataset = classification(args, dataset)
+    # logging.info('double ensemble predict completed.')
 
 
-    # # dataset = read_list_file(args.data)
+    dataset = read_list_file(args.data)
     # dataset = read_list_file('/data/xf2022/Projects/eccnlp_local/data/result_data/3.1_result_dict_predict20.46.txt')
 
-    # logging.info(f'length of raw dataset: {len(dataset)}')
+    logging.info(f'length of raw dataset: {len(dataset)}')
 
     # dataset = re_filter(dataset)
 
-    # filtedDataset = bertFilter(args, dataset)
+    filtedDataset = bertFilter(args, dataset)
 
-    # # train_data, dev_data, test_data = dataset_generate_train(args, dataset)
-    # # logging.info(f'{len(dataset)} samples left after re_filter')
+    # train_data, dev_data, test_data = dataset_generate_train(args, dataset)
+    # logging.info(f'{len(dataset)} samples left after re_filter')
     
-    # result = extraction(None, filtedDataset)
+    result = extraction(args, filtedDataset)
     # with open("./after_extraction_data3.1DoubleEnsemble.txt", 'w') as f:
     #     [f.write(str(data) + '\n') for data in result]
     # # evaluate_sentence(result, clf)
@@ -119,6 +119,6 @@ if __name__ == '__main__':
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
     # uie_list = read_list_file(filepath)
     # rerank_res = rerank_predict(args, uie_list)
-    # rerank_res = rerank_predict(args, result)
+    rerank_res = rerank_predict(args, result)
 
 
