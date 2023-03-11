@@ -1,8 +1,7 @@
-# nohup python -u main.py \
 nohup python -u inference.py \
     --bert_tokenizer_path /data/pzy2022/pretrained_model/bert-base-chinese \
-    --bert_model_path /data2/panziyang/project/bertForSequenceClassification/checkpoint/bert-base-chinese_focalloss_refilter_over/checkpoint-8000 \
-    --data /data/fkj2023/Project/eccnlp_local/data_process/3.1_data_dict_length0_test.txt \
+    --bert_model_path /data2/panziyang/project/bertForSequenceClassification/checkpoint/bert-base-chinese_focalloss_nofilter_over_raw/checkpoint-14000 \
+    --data /data/zyx2022/FinanceText/process_file/3.1_data_dict_length0.txt \
     --predict_data /data/xf2022/Projects/eccnlp_local/data/dataset/3.1_data_dict_length5_test.txt \
     --balance down \
     --model EnsembleModel \

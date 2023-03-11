@@ -1,4 +1,4 @@
-from transformers import BertForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
+from transformers import BertForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments, BertTokenizerFast
 import torch
  
 # print(torch.cuda.current_device(), torch.cuda.get_device_name())
@@ -20,7 +20,7 @@ class MyDataset(Dataset):
 
 
 def generate_ids(args, data_list):
-    tokenizer = AutoTokenizer.from_pretrained(args.bert_tokenizer_path)
+    tokenizer = BertTokenizerFast.from_pretrained(args.bert_tokenizer_path)
 
     ids = tokenizer(
         [data['raw_text'] for data in data_list],
