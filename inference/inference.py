@@ -57,7 +57,7 @@ def classification(args, dataset):
     return dataset
 
 def extraction(args, dataset):
-    result, _, _ = extraction_inference(args, dataset, None, None)
+    _, _, result = extraction_inference(args, None, None, dataset)
     return result
 
 def rerank_predict(args, uie_list):
@@ -68,6 +68,9 @@ def rerank_predict(args, uie_list):
 
     word = read_word(args.word_path)
     after_embedding_list = add_embedding(args, uie_list)
+    '''
+    TODO change log.
+    '''
     print_list(after_embedding_list, log1)
     text_list, num_list = get_text_list(uie_list)
     merged_list = merge_reasons(args, text_list, num_list, after_embedding_list)

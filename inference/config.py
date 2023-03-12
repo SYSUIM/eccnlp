@@ -104,6 +104,9 @@ def get_arguments():
     parser.add_argument('--vocab_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/bert_model/vocab.txt',help='vocab path')
     parser.add_argument('--code_length', type=int, default=16,help='the dimension of sentence features') 
     parser.add_argument('--lambdarank_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter.pkl',help='lambdarank path')
+    '''
+    TODO use train data path 
+    '''
     parser.add_argument('--word_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.log',help='word path')
 
 

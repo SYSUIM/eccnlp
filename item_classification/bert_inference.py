@@ -22,6 +22,7 @@ class MyDataset(Dataset):
 def generate_ids(args, data_list):
     tokenizer = BertTokenizerFast.from_pretrained(args.bert_tokenizer_path)
 
+    logging.info(f'tokenization start... using tokenizer from {args.bert_tokenizer_path}')
     ids = tokenizer(
         [data['raw_text'] for data in data_list],
         return_tensors="pt",
@@ -31,6 +32,7 @@ def generate_ids(args, data_list):
         add_special_tokens=True
     )
 
+    logging.info(f'tokenization end...')
     numbers = torch.tensor([data['number'] for data in data_list])
     
     return ids, numbers
@@ -55,7 +57,8 @@ def bertForSequenceClassification(args, dataset):
         batch_size = args.bert_batch_size,
         shuffle = False
         )
-    
+
+    logging.info(f'bert inference start... using model from {args.bert_model_path}')
     with torch.no_grad():
         for _, data in enumerate(test_dataloader):
             input_keys = ('input_ids', 'attention_mask')
@@ -68,5 +71,7 @@ def bertForSequenceClassification(args, dataset):
 
             filted_text = [number2dict[numbers[i]] for i in range(len(predicts)) if predicts[i] == 1]
             filtedDataset.extend(filted_text)
+    logging.info(f'bert inference end...')
+    logging.info(f'length of filtedDataset: {len(filtedDataset)}, {len(dataset) - len(filtedDataset)} samples are filted.')
 
     return filtedDataset    

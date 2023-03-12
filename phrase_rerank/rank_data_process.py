@@ -33,6 +33,8 @@ def add_embedding(args, uie_list):
     lines = uie_list 
     after_embedding_list = []
     for i in range(len(lines)):
+        if i % 1000 ==0:
+            logging.info(f'add embedding for step {i}')
         data_pre = lines[i]
         dic = data_pre
         # no uie reason
@@ -67,7 +69,9 @@ def add_embedding(args, uie_list):
         after_embedding_list.append(dic)
     return after_embedding_list
 
-
+'''
+TODO if the finetuned BERT classification parameters could be reused here?
+'''
 class BertTextNet(nn.Module):
     def __init__(self,code_length):
         super(BertTextNet, self).__init__()
@@ -90,6 +94,11 @@ class BertTextNet(nn.Module):
         features = self.tanh(features)
         return features
 
+'''
+TODO 
+1. tokenization faster
+2. parallel compute using multiple GPUs
+'''
 def sentence_features(textNet, tokenizer, texts, device):
     tokens, segments, input_masks = [], [], []
     for text in texts:
@@ -174,15 +183,6 @@ def merge_reasons(args, text_list, num_list, uie_list):
     return merged_reasons
 
 
-def read_list(filepath):
-    list_lines = []
-    with open(filepath, "r", encoding="utf8") as f:
-        lines = f.readlines()
-        for i in range(len(lines)):
-            data_pre = eval(lines[i])
-            list_lines.append(data_pre)
-    return list_lines
-
 def print_list(alist, log):
     for i in alist:
         log.info(i)
@@ -207,6 +207,9 @@ def get_logger2(name, logpath):
     logger.addHandler(fh)
     return logger
 
+'''
+TODO move to utils.py
+'''
 def read_word(filepath):
     alist = []
     with open(filepath, "r", encoding="utf8") as f:
