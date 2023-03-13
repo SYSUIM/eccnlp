@@ -1,5 +1,6 @@
 from transformers import BertForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments, BertTokenizerFast
 import torch
+import logging
  
 # print(torch.cuda.current_device(), torch.cuda.get_device_name())
 
@@ -39,6 +40,11 @@ def generate_ids(args, data_list):
 
 
 def bertForSequenceClassification(args, dataset):
+    device_count = torch.cuda.device_count()
+    for id in range(device_count):
+        p = torch.cuda.get_device_properties(id)
+        logging.info(f'current device for SequenceClassification: CUDA:{id} ({p.name}, {p.total_memory / (1 << 20):.0f}MiB)')
+
     filtedDataset = []
     number2dict = {}
     for data in dataset:
@@ -48,6 +54,9 @@ def bertForSequenceClassification(args, dataset):
         args.bert_model_path,
         torch_dtype = "auto"
         ).to('cuda')
+
+    if device_count > 1:
+        model = torch.nn.DataParallel(model)
 
     test_ids, test_numbers = generate_ids(args, dataset)
     test_dataset = MyDataset(test_ids, test_numbers)

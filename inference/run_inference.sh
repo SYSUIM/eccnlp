@@ -1,7 +1,9 @@
-nohup python -u inference.py \
+export CUDA_VISIBLE_DEVICES="0, 2, 4"
+python -u inference.py \
     --bert_tokenizer_path /data/pzy2022/pretrained_model/bert-base-chinese \
     --bert_model_path /data2/panziyang/project/bertForSequenceClassification/checkpoint/bert-base-chinese_focalloss_nofilter_over_raw/checkpoint-14000 \
-    --data /data/zyx2022/FinanceText/process_file/3.1_data_dict_length0.txt \
+    --bert_batch_size 512 \
+    --data /data/zyx2022/FinanceText/process_file/3.1_raw_dataset_dict_nocut.txt\
     --predict_data /data/xf2022/Projects/eccnlp_local/data/dataset/3.1_data_dict_length5_test.txt \
     --balance down \
     --model EnsembleModel \
