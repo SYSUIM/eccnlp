@@ -99,11 +99,12 @@ def get_arguments():
     '''
     here are parameters for Rerank
     '''
+    parser.add_argument('--time', type=str, default = str(time_stamp), help='path of raw data')
     parser.add_argument('--type', type=str, default='业绩归因',help='type of answer')
     parser.add_argument('--f_num', type=int, default=34, help='feature number')
     parser.add_argument('--vocab_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/bert_model/vocab.txt',help='vocab path')
     parser.add_argument('--code_length', type=int, default=16,help='the dimension of sentence features') 
-    parser.add_argument('--lambdarank_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter.pkl',help='lambdarank path')
+    parser.add_argument('--lambdarank_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter_bak.pkl',help='lambdarank path')
     '''
     TODO use train data path 
     '''
