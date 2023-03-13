@@ -15,3 +15,5 @@ python -u inference.py \
     >>./log/$(date +%Y%m%d).log 2>&1 &
     # >/dev/null 2>&1 &
     # --data /data/zyx2022/FinanceText/process_file/3.1_data_dict_length0.txt \ 
+    # --data /data/zyx2022/FinanceText/process_file/3.1_raw_dataset_dict_nocut.txt \
+    # /data/fkj2023/Project/eccnlp_local/data/3.1_raw_dataset_dict_nocut_test.txt
