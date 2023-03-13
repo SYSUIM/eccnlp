@@ -68,6 +68,15 @@ def get_logger(log_name, log_file, level = logging.INFO):
 
     return logger
 
+def get_res_logger(log_name, log_file, level = logging.INFO):
+    formatter = logging.Formatter('%(message)s')
+    logger = logging.getLogger(log_name)
+    fileHandler = logging.FileHandler(log_file, mode='a')
+    fileHandler.setFormatter(formatter)   
+    logger.setLevel(level)
+    logger.addHandler(fileHandler)
+
+    return logger
 
 def read_list_file(path: str) -> list:
     data_list = []
@@ -233,6 +242,18 @@ def split_train_datasets(data_dict, args) -> list:
     
     return train_datasets
 
+def read_word(filepath):
+    alist = []
+    with open(filepath, "r", encoding="utf8") as f:
+        lines = f.readlines()
+        for line in lines:
+            line = line.strip()
+            alist.append(line)
+    return alist
+
+def print_list(alist, log):
+    for i in alist:
+        log.info(i)
 
 if __name__ == '__main__':
     # test for read_list_file
