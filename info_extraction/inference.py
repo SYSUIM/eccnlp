@@ -1,6 +1,6 @@
 import sys
 sys.path.append('/data/pzy2022/project/eccnlp')
-
+import logging
 
 def extraction_inference(args, train_data, dev_data, test_data):
     from paddlenlp import Taskflow
@@ -24,6 +24,10 @@ def extraction_inference(args, train_data, dev_data, test_data):
             result = my_ie(data['raw_text'])
             data['output'] = result
     logging.info(f'extraction end...')
-    logging.info(f'length of train_data:{len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
+    
+    if train_data is not None: 
+        logging.info(f'length of train_data:{len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
+    else:
+        logging.info(f'length of test_data: {len(test_data)}')
     
     return train_data, dev_data, test_data

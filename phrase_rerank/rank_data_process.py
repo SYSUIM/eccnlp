@@ -25,6 +25,65 @@ def read_list_file(path: str) -> list:
 
     return data_list
 
+
+def uie_list_filter(args, uie_list):
+
+    lines = uie_list 
+    filtered_uie_list = []
+    context_list = []
+    s_cls = '[CLS]'
+    s_sep = '[SEP]'
+    for i in range(len(lines)):
+        data_pre = lines[i]
+        dic = data_pre
+        # no uie reason
+        if len(data_pre["output"][0]) == 0: 
+            continue
+        data=data_pre["output"][0]
+        str_pre = data_pre["raw_text"]
+        elem_num=len(data[args.type])   
+        # at least one uie reason              
+        if elem_num > 0: 
+            filtered_uie_list.append(lines[i])
+
+            for j in data[args.type]:
+                lb = 0
+                re = -1    
+                if j['start'] > 100 :
+                    lb = j['start'] -100  
+                if len(str_pre) - j["end"] >100:
+                    re = j["end"] + 100
+                s_before = s_cls + str_pre[lb : j["start"]] + s_sep
+                s_after = s_cls + str_pre[j["end"] : re] + s_sep
+                context_list.extend([s_before, s_after])
+
+    return filtered_uie_list, context_list
+
+def add_embedding_new(args, filtered_uie_list, context_list):
+    textNet = BertTextNet(args.code_length)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    textNet.to(device)
+    tokenizer = BertTokenizer.from_pretrained(args.vocab_path)   
+    sen_f = sentence_features(textNet, tokenizer, context_list, device)     
+    lines = filtered_uie_list
+    after_embedding_list = []
+    for i in range(len(lines)):
+        data_pre = lines[i]
+        dic = data_pre
+        data=data_pre["output"][0]
+        dic_new = {}  
+        uie_re = []
+        for j in data[args.type]:
+            j['s_before'] = sen_f[2*i]
+            j['s_after'] = sen_f[2*i+1]
+            uie_re.append(j)
+        dic_new[args.type] = uie_re
+        dic['output'] = [dic_new]
+        # log.info(dic)
+        after_embedding_list.append(dic)
+    return after_embedding_list
+
+
 def add_embedding(args, uie_list):
     textNet = BertTextNet(args.code_length)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -33,7 +92,7 @@ def add_embedding(args, uie_list):
     lines = uie_list 
     after_embedding_list = []
     for i in range(len(lines)):
-        if i % 1000 ==0:
+        if i % 100 ==0:
             logging.info(f'add embedding for step {i}')
         data_pre = lines[i]
         dic = data_pre
@@ -47,7 +106,7 @@ def add_embedding(args, uie_list):
         if elem_num > 0: 
             dic_new = {}  
             uie_re = []
-            str_pre = data_pre["content"]
+            str_pre = data_pre["raw_text"]
             s_cls = '[CLS]'
             s_sep = '[SEP]'
             for j in data[args.type]:
@@ -399,7 +458,7 @@ if __name__ == "__main__":
 
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/res_log/2.0_2023-01-15_merge.txt'
     filepath ='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/2023-03-02_merged_list.log'
-    merged_list = read_list(filepath)
+    merged_list = read_list_file(filepath)
 
     if (args.usage == "train"):
         log1=get_logger1('train', logpath)
