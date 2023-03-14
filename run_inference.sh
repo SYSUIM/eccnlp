@@ -1,5 +1,5 @@
 export CUDA_VISIBLE_DEVICES="0, 2, 4"
-python -u inference.py \
+python -u ./inference/inference.py \
     --bert_tokenizer_path /data/pzy2022/pretrained_model/bert-base-chinese \
     --bert_model_path /data2/panziyang/project/bertForSequenceClassification/checkpoint/bert-base-chinese_focalloss_nofilter_over_raw/checkpoint-14000 \
     --bert_batch_size 512 \

@@ -1,6 +1,11 @@
-nohup python -u main.py \
-    --data /data/fkj2023/Project/eccnlp_local/data/2.1_raw_dataset_dict_test.txt \
-    --balance down \
+export CUDA_VISIBLE_DEVICES="0, 4"
+nohup python -u ./train/train.py \
+    --data /data/zyx2022/FinanceText/process_file/2.1_raw_dataset_dict_nocut.txt \
+    --bert_pretrained_model /data/pzy2022/pretrained_model/bert-base-chinese \
+    --bert_batch_size 16 \
+    --bert_disable_tqdm False \
+    --bert_save_dir /data2/panziyang/project/eccnlp/eccnlp/checkpoint/bert-chinese/$(date +%Y%m%d) \
+    --balance up \
     --model EnsembleModel \
     --ensemble_models TextCNN TextRNN TextRCNN TextRNN_Att DPCNN \
     --num_epochs 10 \
