@@ -8,4 +8,6 @@ nohup python -u main.py \
     --UIE_batch_size 4 \
     --UIE_num_epochs 2 \
     --device gpu:2 \
-    >>./log/$(date +%Y%m%d).log 2>&1 &
+    --save_dir /data/pzy2022/project/eccnlp/checkpoint/20230228 
+    # >/dev/null 2>&1 &
+    # >>./log/$(date +%Y%m%d).log 2>&1 &

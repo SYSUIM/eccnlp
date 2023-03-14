@@ -1,23 +1,14 @@
 import os
 import config
-args = config.get_arguments()
-
-if args.device[-1].isdigit():
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.device[-1]
-else:
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 import sys
-# sys.path.append('/data/pzy2022/project/eccnlp')
-sys.path.append('/data/fkj2023/Project/eccnlp')
-# sys.path.append('/data/fkj2023/Project/eccnlp/inference')
-# sys.path.append('../')
+
 from config import re_filter
 from utils import read_list_file, split_dataset, evaluate_sentence, read_word, print_list, check_log_dir, get_res_logger
 from data_process.dataprocess import train_dataset, split_dataset, classification_dataset, dict_to_list
 
 import logging
-
+sys.path.append('/data/fkj2023/Project/eccnlp')
 from item_classification.bert_inference import bertForSequenceClassification
 
 from item_classification.classification_model_predict import classification_models_predict
