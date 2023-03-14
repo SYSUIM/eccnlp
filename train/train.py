@@ -1,4 +1,6 @@
 import os
+import sys
+sys.path += '..'
 import argparse
 import logging
 from multiprocessing import Process, Pool
@@ -14,6 +16,7 @@ from data_process.dataprocess import re_pattern1, re_pattern2, train_dataset, sp
 from item_classification.run_classification_model import run_classification_model
 from item_classification.ensemble_models import ensemble_classification_model
 from item_classification.ensemble_double_models import ensemble_double_models
+from item_classification.bert_train import BertForClassification
 
 # information extraction
 from info_extraction.finetune import do_train
@@ -175,6 +178,7 @@ def run_rerank(args, uie_list, word):
 
     return 
 
+
 if __name__ == '__main__':
     args = config.get_arguments()
 
@@ -192,14 +196,14 @@ if __name__ == '__main__':
     main_logger.info(f'length of raw dataset: {len(raw_dataset)}')
 
     # waiting for re filter...
-    dataset = re_filter(raw_dataset)
-    main_logger.info(f'{len(raw_dataset) - len(dataset)} samples are filted by re_filter')
-    res = ensemble_text_classification(args, dataset)
-    for i in res:
-        print(i)
-    exit(0)
+    # dataset = re_filter(raw_dataset)
+    # main_logger.info(f'{len(raw_dataset) - len(dataset)} samples are filted by re_filter')
+    # res = ensemble_text_classification(args, dataset)
+    # for i in res:
+    #     print(i)
+    # exit(0)
 
-
+    BertForClassification(args, raw_dataset)
 
 
     # all_dict = text_classification(args)

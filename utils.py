@@ -262,11 +262,11 @@ def print_list(alist, log):
         log.info(i)
 
 
-def split_dataset(args, dataset):
+def split_dataset(dataset, train_size, val_size):
     dataset_len = len(dataset)
 
-    train_len = int(args.train_size * dataset_len)
-    dev_len = int(args.val_size * dataset_len)
+    train_len = int(train_size * dataset_len)
+    dev_len = int(val_size * dataset_len)
     test_len = dataset_len - train_len - dev_len
 
     train_dataset, dev_dataset, test_dataset = random_split(
