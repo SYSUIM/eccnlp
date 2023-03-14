@@ -21,6 +21,13 @@ def get_arguments():
     parser.add_argument('--time', type=str, default = str(time_stamp), help='path of raw data')
 
     '''
+    here are parameters for bert-base-chinese Classification
+    '''
+    parser.add_argument('--bert_tokenizer_path', type = str, required = True, help='model path of trained bert')
+    parser.add_argument('--bert_model_path', type = str, required = True, help='model path of trained bert')
+    parser.add_argument('--bert_batch_size', type = int, default = 64, help='batch size of bert')
+
+    '''
     here are parameters for Chinese Text Classification
     '''
     parser.add_argument('--data', type=str, required=True, help='path of raw data')

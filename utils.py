@@ -3,6 +3,8 @@ import re
 import logging
 import random
 
+import torch
+from torch.utils.data import random_split
 import numpy as np
 import pandas as pd
 from sklearn.metrics import classification_report
@@ -68,6 +70,7 @@ def get_logger(log_name, log_file, level = logging.INFO):
 
     return logger
 
+
 def get_res_logger(log_name, log_file, level = logging.INFO):
     formatter = logging.Formatter('%(message)s')
     logger = logging.getLogger(log_name)
@@ -77,6 +80,7 @@ def get_res_logger(log_name, log_file, level = logging.INFO):
     logger.addHandler(fileHandler)
 
     return logger
+
 
 def read_list_file(path: str) -> list:
     data_list = []
@@ -242,6 +246,7 @@ def split_train_datasets(data_dict, args) -> list:
     
     return train_datasets
 
+
 def read_word(filepath):
     alist = []
     with open(filepath, "r", encoding="utf8") as f:
@@ -251,9 +256,30 @@ def read_word(filepath):
             alist.append(line)
     return alist
 
+
 def print_list(alist, log):
     for i in alist:
         log.info(i)
+
+
+def split_dataset(args, dataset):
+    dataset_len = len(dataset)
+
+    train_len = int(args.train_size * dataset_len)
+    dev_len = int(args.val_size * dataset_len)
+    test_len = dataset_len - train_len - dev_len
+
+    train_dataset, dev_dataset, test_dataset = random_split(
+        dataset=dataset,
+        lengths=[train_len, dev_len, test_len],
+        generator=torch.Generator().manual_seed(42)
+    )
+    print(f'length of train_dataset: {len(train_dataset)}')
+    print(f'length of dev_dataset: {len(dev_dataset)}')
+    print(f'length of test_dataset: {len(test_dataset)}')
+
+    return train_dataset, dev_dataset, test_dataset
+
 
 if __name__ == '__main__':
     # test for read_list_file
