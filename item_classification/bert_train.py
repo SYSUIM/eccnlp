@@ -50,10 +50,10 @@ class BertClassificationTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-def train_dataset_sampling(args, train_X, train_y):
+def train_dataset_sampling(balance: str, train_X, train_y):
     print('Before resample labels ratio in dataset:', Counter(train_y))
 
-    assert args.balance in ('up', 'down', 'none')
+    assert balance in ('up', 'down', 'none')
 
     if args.balance == 'none':
         train_X_resample, train_y_resample = train_X, train_y
@@ -128,12 +128,12 @@ def BertForClassification(args, dataset):
     # data preprocess for train_dataset
     train_X, train_y = [data['raw_text'] for data in train_dataset], [data['label'] for data in train_dataset]
 
-    train_X_resample, train_y_resample = train_dataset_sampling(args, train_X, train_y)
+    train_X_resample, train_y_resample = train_dataset_sampling(args.balance, train_X, train_y)
 
     train_X_resample = train_X_resample.reshape(-1).tolist()
     train_y_resample = train_y_resample.tolist()
 
-    # random suffle for resampled dataset
+    # random shuffle for resampled dataset
     sample_preshuffle = [(train_X_resample[i], train_y_resample[i]) for i in range(len(train_X_resample))]
     random.shuffle(sample_preshuffle)
     train_X_resample, train_y_resample = [text for text, _ in sample_preshuffle], [label for _, label in sample_preshuffle]

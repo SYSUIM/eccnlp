@@ -203,8 +203,8 @@ if __name__ == '__main__':
     #     print(i)
     # exit(0)
 
-    BertForClassification(args, raw_dataset)
-
+    report, matrix = BertForClassification(args, raw_dataset)
+    print(report, matrix)
 
     # all_dict = text_classification(args)
     # all_dict = ensemble_text_classification(args, dataset)
