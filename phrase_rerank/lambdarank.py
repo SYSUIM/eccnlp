@@ -215,7 +215,7 @@ def train(training_data, lr, epoch, modelpath, device, model, log):
 
 
 
-def predict(args, data, reason_list):
+def predict_rank(args, data, reason_list):
 
     model = LambdaRank(data)
     model.load_state_dict(torch.load(args.lambdarank_path))
@@ -316,7 +316,7 @@ def precision_k(data, modelpath, log):
 
 
 
-def add_rerank(args, rerank_list,rerank_scores, merged_list, log):
+def add_rerank(args, rerank_list,rerank_scores, merged_list):
     now=0
     res=[]
     lines = merged_list
@@ -335,7 +335,7 @@ def add_rerank(args, rerank_list,rerank_scores, merged_list, log):
             data_pre["score"] = rerank_scores[now]
             now += 1
         res.append(data_pre)
-        log.info(data_pre)               
+        # log.info(data_pre)               
     return res
 
 def read_word(filepath):
