@@ -16,8 +16,8 @@ from utils import split_dataset, read_list_file
 
 class MyDataset(Dataset):
     def __init__(self, texts, labels):
-        self.texts = texts
-        self.labels = labels
+        self.texts = texts.to('cuda')
+        self.labels = labels.to('cuda')
         
     def __len__(self):
         return len(self.labels)
@@ -55,14 +55,14 @@ def train_dataset_sampling(balance: str, train_X, train_y):
 
     assert balance in ('up', 'down', 'none')
 
-    if args.balance == 'none':
+    if balance == 'none':
         train_X_resample, train_y_resample = train_X, train_y
         
-    elif args.balance == 'up':
+    elif balance == 'up':
         sm = RandomOverSampler(random_state=42)
         train_X_resample, train_y_resample = sm.fit_resample(np.array(train_X).reshape(-1, 1), np.array(train_y).reshape(-1, 1))
         
-    elif args.balance == 'down':
+    elif balance == 'down':
         sm = RandomUnderSampler(random_state=42)
         train_X_resample, train_y_resample = sm.fit_resample(np.array(train_X).reshape(-1, 1), np.array(train_y).reshape(-1, 1))
     
@@ -106,7 +106,7 @@ def test_on_best_model(tokenizer, test_dataset, test_model_path):
     predict_list, true_list = [], []
     with torch.no_grad():
         for _, data in enumerate(test_dataloader):
-            logits = test_model(**input).logits
+            logits = test_model(**data).logits
             labels = data['labels'].to('cpu').numpy().tolist()
             predict = [(logit.argmax().item()) for logit in logits]
 
