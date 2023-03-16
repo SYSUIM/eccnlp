@@ -106,7 +106,7 @@ def test_on_best_model(tokenizer, test_dataset, test_model_path):
     predict_list, true_list = [], []
     with torch.no_grad():
         for _, data in enumerate(test_dataloader):
-            logits = test_model(**input).logits
+            logits = test_model(**data).logits
             labels = data['labels'].to('cpu').numpy().tolist()
             predict = [(logit.argmax().item()) for logit in logits]
 
@@ -166,7 +166,7 @@ def BertForClassification(args, dataset):
         per_device_eval_batch_size=64,
         num_train_epochs=1,
         weight_decay=0.01,
-        disable_tqdm=False,
+        disable_tqdm=True,
         save_steps = 100
     )
 
