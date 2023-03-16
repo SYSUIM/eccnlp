@@ -7,7 +7,7 @@ import argparse
 from datetime import datetime
 from transformers import BertTokenizer
 import torch
-from transformers import BertModel, BertConfig,BertTokenizer
+from transformers import BertModel, BertConfig,BertTokenizerFast
 from torch import nn
 
 
@@ -96,10 +96,10 @@ def add_embedding(args, uie_list):
             logging.info(f'add embedding for step {i}')
         data_pre = lines[i]
         dic = data_pre
-        # no uie reason
-        if len(data_pre["output"][0]) == 0: 
-            after_embedding_list.append(dic)
-            continue
+        # # no uie reason
+        # if len(data_pre["output"][0]) == 0: 
+        #     after_embedding_list.append(dic)
+        #     continue
         data=data_pre["output"][0]
         elem_num=len(data[args.type])   
         # at least one uie reason              
@@ -134,7 +134,8 @@ TODO if the finetuned BERT classification parameters could be reused here?
 class BertTextNet(nn.Module):
     def __init__(self,code_length):
         super(BertTextNet, self).__init__()
- 
+        seed = 1
+        torch.random.manual_seed(seed)
         modelConfig = BertConfig.from_pretrained(config_path)
         self.textExtractor = BertModel.from_pretrained(
             model_path, config=modelConfig)
