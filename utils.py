@@ -136,57 +136,57 @@ def evaluate(true_list: list, predict_list: list):
     logging.info(f'\n{classification_report_actual}')
 
 
-'''生成分类模型数据集'''
-def split_dataset(dataset,args):
-    '''
-    Split dataset into train, validation(if you want) and test.
-    The parameters could be defined in args(initalized in config.py):
-        1. test_size: the size of test dataset. 
-        2. val_size: the size of validation dataset.
-        3. train_size: the size of train dataset.
-        NOTICE: The sum of three above needs to be 1, otherwise train_size = 1 - test_size - val_dataset. 
-    '''
-    content_list = []
-    label_list = []
+# '''生成分类模型数据集'''
+# def split_dataset(dataset,args):
+#     '''
+#     Split dataset into train, validation(if you want) and test.
+#     The parameters could be defined in args(initalized in config.py):
+#         1. test_size: the size of test dataset. 
+#         2. val_size: the size of validation dataset.
+#         3. train_size: the size of train dataset.
+#         NOTICE: The sum of three above needs to be 1, otherwise train_size = 1 - test_size - val_dataset. 
+#     '''
+#     content_list = []
+#     label_list = []
 
-    for i in range(len(dataset)):
-        content, label = dataset[i]['content'], dataset[i]['label']
-        content = re.sub("[^\u4e00-\u9fa5]", "", str(content))
-        if content:           # 去除只保留汉字后出现的空值
-            content_list.append(content)
-            label_list.append(label)
+#     for i in range(len(dataset)):
+#         content, label = dataset[i]['content'], dataset[i]['label']
+#         content = re.sub("[^\u4e00-\u9fa5]", "", str(content))
+#         if content:           # 去除只保留汉字后出现的空值
+#             content_list.append(content)
+#             label_list.append(label)
     
-    X = np.array(content_list)
-    y = np.array(label_list)
-    if args.test_size > 0:
-        # 划分训练集和测试集       
-        split = StratifiedShuffleSplit(n_splits=1, test_size=args.test_size, random_state=4)
-        for train_index, test_index in split.split(X, y):
-            train_num = train_index 
-            test_num = test_index
-        if args.val_size > 0:
-             #划分验证集    
-            split = StratifiedShuffleSplit(n_splits=1, test_size=args.val_size/(1-args.test_size), random_state=4)
-            for train_index, val_index in split.split(X[train_num], y[train_num]):
-                train_tmp = train_num[train_index]
-                val_num = train_num[val_index]
-                train_num = train_tmp
-    else:        
-        #无测试集，只有训练集和验证集
-        split = StratifiedShuffleSplit(n_splits=1, test_size=args.val_size, random_state=4)
-        for train_index, val_index in split.split(X,y):
-            train_num = train_index
-            val_num = val_index
-    train_dict = []
-    val_dict = []
-    test_dict = []
-    train_dict = [dataset[i] for i in train_num]
-    if args.val_size > 0:
-        val_dict = [dataset[i] for i in val_num]
-    if args.test_size > 0:
-        test_dict = [dataset[i] for i in test_num]
+#     X = np.array(content_list)
+#     y = np.array(label_list)
+#     if args.test_size > 0:
+#         # 划分训练集和测试集       
+#         split = StratifiedShuffleSplit(n_splits=1, test_size=args.test_size, random_state=4)
+#         for train_index, test_index in split.split(X, y):
+#             train_num = train_index 
+#             test_num = test_index
+#         if args.val_size > 0:
+#              #划分验证集    
+#             split = StratifiedShuffleSplit(n_splits=1, test_size=args.val_size/(1-args.test_size), random_state=4)
+#             for train_index, val_index in split.split(X[train_num], y[train_num]):
+#                 train_tmp = train_num[train_index]
+#                 val_num = train_num[val_index]
+#                 train_num = train_tmp
+#     else:        
+#         #无测试集，只有训练集和验证集
+#         split = StratifiedShuffleSplit(n_splits=1, test_size=args.val_size, random_state=4)
+#         for train_index, val_index in split.split(X,y):
+#             train_num = train_index
+#             val_num = val_index
+#     train_dict = []
+#     val_dict = []
+#     test_dict = []
+#     train_dict = [dataset[i] for i in train_num]
+#     if args.val_size > 0:
+#         val_dict = [dataset[i] for i in val_num]
+#     if args.test_size > 0:
+#         test_dict = [dataset[i] for i in test_num]
     
-    return train_dict, val_dict, test_dict
+#     return train_dict, val_dict, test_dict
 
 
 def evaluate_sentence(result_list, classification_list):
@@ -274,9 +274,9 @@ def split_dataset(dataset, train_size, val_size):
         lengths=[train_len, dev_len, test_len],
         generator=torch.Generator().manual_seed(42)
     )
-    print(f'length of train_dataset: {len(train_dataset)}')
-    print(f'length of dev_dataset: {len(dev_dataset)}')
-    print(f'length of test_dataset: {len(test_dataset)}')
+    logging.info(f'length of train_dataset: {len(train_dataset)}')
+    logging.info(f'length of dev_dataset: {len(dev_dataset)}')
+    logging.info(f'length of test_dataset: {len(test_dataset)}')
 
     return train_dataset, dev_dataset, test_dataset
 
