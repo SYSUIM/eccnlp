@@ -5,7 +5,8 @@ import logging
 def extraction_inference(args, train_data, dev_data, test_data):
     from paddlenlp import Taskflow
 
-    schema = ['业绩归因']
+    # schema = ['业绩归因']
+    schema = [args.type]
     my_ie = Taskflow("information_extraction", schema=schema, task_path = args.save_dir + '/model_best', position_prob = 0.2)
 
     logging.info(f'extraction start... using model from {args.save_dir}/model_best')
