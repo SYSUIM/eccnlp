@@ -1,3 +1,4 @@
+import logging
 import re
 from utils import split_dataset
 
@@ -82,20 +83,20 @@ def dataset_split(args, data_list: list):
     dev_data = []
     test_data = []
 
-    train_data, dev_data, test_data = split_dataset(data_list, args)
+    train_data, dev_data, test_data = split_dataset(data_list, args.train_size, args.val_size)
 
     return train_data, dev_data, test_data
 
 
 def dataset_generate_train(args, data_list):
-    from utils import get_logger, get_log_path
-    ext_logger = get_logger('ext_logger', get_log_path() + '/ext.log')
+    # from utils import get_logger, get_log_path
+    # ext_logger = get_logger('ext_logger', get_log_path() + '/ext.log')
 
     filted_data = data_filter(data_list)
-    ext_logger.info(f'raw_data length: {len(data_list)}, filted_data length: {len(filted_data)}')
+    logging.info(f'raw_data length: {len(data_list)}, filted_data length: {len(filted_data)}')
 
     cutted_data = data_process(filted_data, data_list)
-    ext_logger.info(f'generate datasetlength: {len(cutted_data)}')
+    logging.info(f'generate datasetlength: {len(cutted_data)}')
 
     train_data, dev_data, test_data = dataset_split(args, cutted_data)
 
