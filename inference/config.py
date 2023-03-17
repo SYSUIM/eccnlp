@@ -108,7 +108,7 @@ def get_arguments():
     '''
     TODO use train data path 
     '''
-    parser.add_argument('--word_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.log',help='word path')
+    parser.add_argument('--word_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/2022-12-24_word.txt',help='word path')
 
 
 

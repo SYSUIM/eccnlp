@@ -7,7 +7,7 @@ import argparse
 from datetime import datetime
 from transformers import BertTokenizer
 import torch
-from transformers import BertModel, BertConfig,BertTokenizer
+from transformers import BertModel, BertConfig,BertTokenizerFast
 from torch import nn
 
 
@@ -29,7 +29,8 @@ def read_list_file(path: str) -> list:
 def uie_list_filter(args, uie_list):
 
     lines = uie_list 
-    filtered_uie_list = []
+    filtered_uie_list_train = []
+    filtered_uie_list_predict = []
     context_list = []
     s_cls = '[CLS]'
     s_sep = '[SEP]'
@@ -44,7 +45,7 @@ def uie_list_filter(args, uie_list):
         elem_num=len(data[args.type])   
         # at least one uie reason              
         if elem_num > 0: 
-            filtered_uie_list.append(lines[i])
+            filtered_uie_list_predict.append(lines[i])
 
             for j in data[args.type]:
                 lb = 0
@@ -57,7 +58,16 @@ def uie_list_filter(args, uie_list):
                 s_after = s_cls + str_pre[j["end"] : re] + s_sep
                 context_list.extend([s_before, s_after])
 
-    return filtered_uie_list, context_list
+        if  elem_num > 1: 
+            lab_txt=data_pre["result_list"][0]["text"]   #  label text 
+            if len(lab_txt) != 0:
+                #合法quary
+                filtered_uie_list_train.append(lines[i])
+
+    logging.info(f'length of filtered_uie_list_train(at least 2 elements in uie output and result_list is not null): {len(filtered_uie_list_train)}')
+    logging.info(f'length of filtered_uie_list_predict(at least 1 element in uie output): {len(filtered_uie_list_predict)}')
+
+    return filtered_uie_list_train, context_list, filtered_uie_list_predict
 
 def add_embedding_new(args, filtered_uie_list, context_list):
     textNet = BertTextNet(args.code_length)
@@ -92,14 +102,14 @@ def add_embedding(args, uie_list):
     lines = uie_list 
     after_embedding_list = []
     for i in range(len(lines)):
-        if i % 100 ==0:
+        if i % 1000 ==0:
             logging.info(f'add embedding for step {i}')
         data_pre = lines[i]
         dic = data_pre
-        # no uie reason
-        if len(data_pre["output"][0]) == 0: 
-            after_embedding_list.append(dic)
-            continue
+        # # no uie reason
+        # if len(data_pre["output"][0]) == 0: 
+        #     after_embedding_list.append(dic)
+        #     continue
         data=data_pre["output"][0]
         elem_num=len(data[args.type])   
         # at least one uie reason              
@@ -134,7 +144,8 @@ TODO if the finetuned BERT classification parameters could be reused here?
 class BertTextNet(nn.Module):
     def __init__(self,code_length):
         super(BertTextNet, self).__init__()
- 
+        seed = 1
+        torch.random.manual_seed(seed)
         modelConfig = BertConfig.from_pretrained(config_path)
         self.textExtractor = BertModel.from_pretrained(
             model_path, config=modelConfig)
@@ -402,7 +413,9 @@ def form_input_list(args, merged_list, vocab):
                     elem = elem + j["s_before"] + j["s_after"]              
                     pro_cnt.append(cot)
                     line_elem.append(elem)
+                # print(f'line_elem:{line_elem}')
                 all_rows = generate_label(line_elem,all_rows) 
+    # print(f'len(all_rows): {len(all_rows)}')
     cnt = normalize(pro_cnt)
     list_len=len(all_rows)
     all = form_input_vector(all_rows,cnt)

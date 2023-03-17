@@ -166,7 +166,7 @@ def BertForClassification(args, dataset):
         per_device_eval_batch_size=64,
         num_train_epochs=1,
         weight_decay=0.01,
-        disable_tqdm=False,
+        disable_tqdm=True,
         save_steps = 100
     )
 

@@ -3,6 +3,7 @@ import time
 import logging
 import re
 import os
+from datetime import datetime
 
 
 logging.basicConfig(
@@ -107,8 +108,9 @@ def get_arguments():
     parser.add_argument('--vocab_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/bert_model/vocab.txt',help='vocab path')
     parser.add_argument('--code_length', type=int, default=16,help='the dimension of sentence features') 
     parser.add_argument('--t_path', type=str, default='/data/fkj2023/Project/eccnlp_local/data_process/stop_words.txt',help='path of stop words')
-
-
+    parser.add_argument("--rerank_save_path", default='./checkpoint/rerank_model/' + datetime.now().strftime("%m_%d_%H_%M_%S")+'.pkl', type=str, help="path that rerank model will be save.")
+    parser.add_argument('--rerank_learning_rate', default=0.0001, type=float, help='learning rate of rerank')
+    parser.add_argument('--rerank_epoch', default=300, type=int, help='Total number of training epochs of rerank')
 
     args = parser.parse_args()
 

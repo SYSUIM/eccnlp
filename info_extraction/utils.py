@@ -123,12 +123,12 @@ def convert_example(example, tokenizer, max_seq_len):
     example: {
         title
         prompt
-        content
+        raw_text
         result_list
     }
     """
     encoded_inputs = tokenizer(text=[example["prompt"]],
-                               text_pair=[example["content"]],
+                               text_pair=[example["raw_text"]],
                                truncation=True,
                                max_seq_len=max_seq_len,
                                pad_to_max_seq_len=True,
@@ -181,7 +181,7 @@ def reader(data_path, max_seq_len=512):
     with open(data_path, 'r', encoding='utf-8') as f:
         for line in f:
             json_line = json.loads(line)
-            content = json_line['content'].strip()
+            content = json_line['raw_text'].strip()
             prompt = json_line['prompt']
             # Model Input is aslike: [CLS] Prompt [SEP] Content [SEP]
             # It include three summary tokens.
@@ -224,7 +224,7 @@ def reader(data_path, max_seq_len=512):
                             break
 
                     json_line = {
-                        'content': cur_content,
+                        'raw_text': cur_content,
                         'result_list': cur_result_list,
                         'prompt': prompt
                     }
@@ -241,7 +241,7 @@ def reader(data_path, max_seq_len=512):
                         break
                     elif len(res_content) < max_content_len:
                         json_line = {
-                            'content': res_content,
+                            'raw_text': res_content,
                             'result_list': result_list,
                             'prompt': prompt
                         }
@@ -291,7 +291,7 @@ def add_negative_example(examples, texts, prompts, label_set, negative_ratio):
 
             for idx in idxs:
                 negative_result = {
-                    "content": texts[i],
+                    "raw_text": texts[i],
                     "result_list": [],
                     "prompt": redundants_list[idx]
                 }
@@ -313,7 +313,7 @@ def add_full_negative_example(examples, texts, relation_prompts, predicate_set,
                     prompt = subject + "的" + predicate
                     if prompt not in relation_prompt:
                         negative_result = {
-                            "content": texts[i],
+                            "raw_text": texts[i],
                             "result_list": [],
                             "prompt": prompt
                         }
@@ -340,7 +340,7 @@ def generate_cls_example(text, labels, prompt_prefix, options):
     prompt = prompt_prefix + "[" + cls_options + "]"
 
     result_list = []
-    example = {"content": text, "result_list": result_list, "prompt": prompt}
+    example = {"raw_text": text, "result_list": result_list, "prompt": prompt}
     for label in labels:
         start = prompt.rfind(label[0]) - len(prompt) - 1
         end = start + len(label)
@@ -500,7 +500,7 @@ def convert_ext_examples(raw_examples,
                 }
                 if entity_label not in entity_example_map.keys():
                     entity_example_map[entity_label] = {
-                        "content": text,
+                        "raw_text": text,
                         "result_list": [result],
                         "prompt": entity_label
                     }
@@ -540,7 +540,7 @@ def convert_ext_examples(raw_examples,
                 }
                 if prompt not in relation_example_map.keys():
                     relation_example_map[prompt] = {
-                        "content": text,
+                        "raw_text": text,
                         "result_list": [result],
                         "prompt": prompt
                     }

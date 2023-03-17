@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import argparse
 from datetime import datetime
+import logging
 # from rank_data_process import get_logger, get_logger2, form_input_list, form_predict_input_list, read_list,add_embedding, get_text_list, merge_reasons
 
 
@@ -155,7 +156,7 @@ class LambdaRank(nn.Module):
         x = self.out(x)
         return x
 
-def train(training_data, lr, epoch, modelpath, device, model, log):
+def train_rerank(args, training_data, device, model):
     """
     train the model to fit the train dataset
     """
@@ -171,7 +172,7 @@ def train(training_data, lr, epoch, modelpath, device, model, log):
 
     sample_num = len(training_data)
 
-    for i in range(epoch):
+    for i in range(args.rerank_epoch):
         train_data = torch.from_numpy(training_data[:, 2:].astype(np.float32)).to(device)
         predicted_scores = model(train_data)
         predicted_scores_numpy = predicted_scores.cpu().data.numpy()
@@ -190,7 +191,7 @@ def train(training_data, lr, epoch, modelpath, device, model, log):
         predicted_scores.backward(lambdas_torch, retain_graph=True)  
         with torch.no_grad():
             for param in model.parameters():
-                param.data.add_(param.grad.data * lr)
+                param.data.add_(param.grad.data * args.rerank_learning_rate)
 
 
         if i % 1 == 0:
@@ -208,14 +209,14 @@ def train(training_data, lr, epoch, modelpath, device, model, log):
                 true_label = true_label[pred_sort_index]
                 ndcg_val = ndcg_k(true_label, k)
                 ndcg_list.append(ndcg_val)
-            log.info('Epoch:{}, Average NDCG : {}'.format(i, np.nanmean(ndcg_list)))
-    log.info(model.state_dict().keys())   # output model parameter name
-    torch.save(model.state_dict(), modelpath)
-    log.info("model saved in %s",modelpath)
+            logging.info('Epoch:{}, Average NDCG : {}'.format(i, np.nanmean(ndcg_list)))
+    logging.info(model.state_dict().keys())   # output model parameter name
+    torch.save(model.state_dict(), args.rerank_save_path)
+    logging.info("model saved in %s", args.rerank_save_path)
 
 
 
-def predict(args, data, reason_list):
+def predict_rank(args, data, reason_list):
 
     model = LambdaRank(data)
     model.load_state_dict(torch.load(args.lambdarank_path))
@@ -254,7 +255,7 @@ def predict(args, data, reason_list):
             predicted_list.append(i)
     return predicted_list, rerank_reasons, rerank_scores
 
-def validate(data, k, modelpath):
+def validate_rerank(args,data, k):
     """
     validate the NDCG metric
     :param data: given the testset
@@ -262,7 +263,7 @@ def validate(data, k, modelpath):
     :return:
     """
     model = LambdaRank(data)
-    model.load_state_dict(torch.load(modelpath))
+    model.load_state_dict(torch.load(args.rerank_save_path))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 
@@ -281,12 +282,13 @@ def validate(data, k, modelpath):
         true_label = true_label[pred_sort_index]
         ndcg_val = ndcg_k(true_label, k)
         ndcg_list.append(ndcg_val)
+    logging.info("np.nanmean(ndcg): %s", np.nanmean(ndcg_list))
     return ndcg_list, predicted_scores
 
-def precision_k(data, modelpath, log):
+def precision_k(args, data):
 
     model = LambdaRank(data)
-    model.load_state_dict(torch.load(modelpath))
+    model.load_state_dict(torch.load(args.rerank_save_path))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 
@@ -309,14 +311,14 @@ def precision_k(data, modelpath, log):
         pred_sort_index = np.argsort(sub_pred_score)[::-1]
         # log.info("pred_sort_index:%s", pred_sort_index)
     precision_1 = true_predict / len(qid_doc_map)
-    log.info("precision_1: %s",precision_1)
+    logging.info("rerank precision_1: %s",precision_1)
 
     # log.info("qid_doc_map.keys(): %s", qid_doc_map.keys())
     return precision_1, predicted_scores
 
 
 
-def add_rerank(args, rerank_list,rerank_scores, merged_list, log):
+def add_rerank(args, rerank_list,rerank_scores, merged_list):
     now=0
     res=[]
     lines = merged_list
@@ -335,7 +337,7 @@ def add_rerank(args, rerank_list,rerank_scores, merged_list, log):
             data_pre["score"] = rerank_scores[now]
             now += 1
         res.append(data_pre)
-        log.info(data_pre)               
+        # log.info(data_pre)               
     return res
 
 def read_word(filepath):
