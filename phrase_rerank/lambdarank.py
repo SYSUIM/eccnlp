@@ -282,7 +282,7 @@ def validate_rerank(args, data, k):
         true_label = true_label[pred_sort_index]
         ndcg_val = ndcg_k(true_label, k)
         ndcg_list.append(ndcg_val)
-    logging.info(f'length of test data: {len(data)}')
+    # logging.info(f'length of test data: {len(data)}')
     logging.info("np.nanmean(ndcg@%s) of test data: %s", k, np.nanmean(ndcg_list))
     return ndcg_list, predicted_scores
 
