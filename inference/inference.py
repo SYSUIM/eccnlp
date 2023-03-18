@@ -55,14 +55,15 @@ def extraction(args, dataset):
 def rerank_predict(args, uie_list):
 
     word = read_word(args.word_path)
-    filtered_uie_list, context_list = uie_list_filter(args, uie_list)
-    after_embedding_list = add_embedding(args, filtered_uie_list)
-    text_list, num_list = get_text_list(filtered_uie_list)
+    filtered_uie_list_train, context_list, filtered_uie_list_preict = uie_list_filter(args, uie_list)
+    after_embedding_list = add_embedding(args, filtered_uie_list_preict)
+    text_list, num_list = get_text_list(filtered_uie_list_preict)
     merged_list = merge_reasons(args, text_list, num_list, after_embedding_list)
     predict_list, reasons = form_predict_input_list(args, merged_list, word)
     predict_data = np.array(predict_list)
     predicted_list, rerank_reasons, rerank_scores = predict_rank(args, predict_data, reasons)
     res = add_rerank(args, rerank_reasons, rerank_scores, merged_list)
+    logging.info(f'length of rerank_res: {len(res)}')
     return res
 
 
@@ -70,7 +71,7 @@ def rerank_predict(args, uie_list):
 if __name__ == '__main__':
     args = config.get_arguments()
 
-    log_path = check_log_dir(args.time) 
+    # log_path = check_log_dir(args.time) 
     # print(log_path)
     # exit(0)
  
@@ -95,7 +96,7 @@ if __name__ == '__main__':
     # dataset = re_filter(dataset)
 
     filtedDataset = bertFilter(args, dataset)
-    with open("./log/" + datetime.now().strftime("%Y-%m-%d")+"_3.1_bertfiltedDataset.txt", 'w') as f:
+    with open("./log/" + datetime.now().strftime("%Y-%m-%d")+"_3.1_bertfiltedDataset_test.txt", 'w') as f:
         [f.write(str(data) + '\n') for data in filtedDataset]    
 
     # train_data, dev_data, test_data = dataset_generate_train(args, dataset)
@@ -112,11 +113,9 @@ if __name__ == '__main__':
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
     # uie_list = read_list_file(filepath)
     # rerank_res = rerank_predict(args, uie_list)
-    rerank_res = rerank_predict(args, result)
-
-    logging.info(f'length of rerank_res: {len(rerank_res)}')
+    rerank_res = rerank_predict(args, result)   
     
-    with open("./log/" + datetime.now().strftime("%Y-%m-%d")+"_3.1_res_add_rerank.txt", 'w') as f:
+    with open("./log/" + datetime.now().strftime("%Y-%m-%d")+"_3.1_res_add_rerank_test.txt", 'w') as f:
         [f.write(str(data) + '\n') for data in rerank_res]    
 
 
