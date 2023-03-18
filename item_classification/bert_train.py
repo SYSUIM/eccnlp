@@ -16,8 +16,10 @@ from utils import split_dataset, read_list_file
 
 class MyDataset(Dataset):
     def __init__(self, texts, labels):
-        self.texts = texts.to('cuda')
-        self.labels = labels.to('cuda')
+        # self.texts = texts.to('cuda')
+        # self.labels = labels.to('cuda')
+        self.texts = texts
+        self.labels = labels
         
     def __len__(self):
         return len(self.labels)
