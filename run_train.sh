@@ -21,3 +21,5 @@ nohup python -u ./train/train.py \
     # >>./log/$(date +%Y%m%d)_2.1_nocut_train_test.log 2>&1 &
     #  /data/fkj2023/practice/eccnlp_data/2023-03-18_2.2_raw_dataset_dict_nocut_only_one_text.txt
     # --data /data/zyx2022/FinanceText/process_file/2.1_raw_dataset_dict_nocut.txt \
+    # --bert_save_dir /data2/panziyang/project/eccnlp/eccnlp/checkpoint/bert-chinese/$(date +%Y%m%d) \
+    # --save_dir /data/pzy2022/project/eccnlp/checkpoint/$(date +%Y%m%d) \
