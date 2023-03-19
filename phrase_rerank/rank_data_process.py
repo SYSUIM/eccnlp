@@ -368,9 +368,7 @@ def form_input_data(args, alllist, reason_list):
         if i[1] >= bre:
             test_list.append(i)
             reason_of_test.append(reason_list[alllist.index(i)])
-    logging.info(f'length of all data in rerank :{len(all_list)}')
-    logging.info(f'length of train data in rerank :{len(train_list)}')
-    logging.info(f'length of test data in rerank :{len(test_list)}')
+
     return all_list,train_list,test_list,reason_of_test 
 
 # write uie reasons into reason_list
