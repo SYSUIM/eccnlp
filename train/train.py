@@ -154,8 +154,8 @@ def run_rerank(args, uie_list, word):
     # print_list(after_embedding_list, log1)
 
     # #merge reasons
-    # text_list, num_list = get_text_list(uie_list)
-    # merged_list = merge_reasons(args, text_list, num_list, after_embedding_list)
+    text_list, num_list = get_text_list(uie_list)
+    merged_list = merge_reasons(args, text_list, num_list, after_embedding_list)
 
     # logging.info(f'length of filtered_uie_list: {len(filtered_uie_list)}')
     #train
@@ -163,7 +163,7 @@ def run_rerank(args, uie_list, word):
     # log3 = get_logger2('train_ndcg',logpath3)
     # epoch = 300
     # learning_rate = 0.0001
-    all_list, train_list, test_list, reason_of_test = form_input_list(args, after_embedding_list, word)
+    all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list, word)
     training_data = np.array(train_list)
     model = LambdaRank(training_data)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -199,14 +199,6 @@ if __name__ == '__main__':
     raw_dataset = read_list_file(args.data)
     logging.info(f'length of raw dataset: {len(raw_dataset)}')
 
-    # word = build_thesaurus(raw_dataset, args.t_path)
-    # # uie 结果路径
-    # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
-    # uie_list = read_list_file(filepath)
-    # # run_rerank(args, uie_list, word)  
-    # run_rerank(args, uie_list, word)
-
-    # exit(0)
 
     # waiting for re filter...
     # dataset = re_filter(raw_dataset)
@@ -218,25 +210,15 @@ if __name__ == '__main__':
 
     report, matrix = BertForClassification(args, raw_dataset)
     print(report, matrix)
-    # raw_dataset = raw_dataset[:1000]
+
 
     res1, res2, res3 = run_information_extraction(args, raw_dataset)
     uie_list = res1 +res2 +res3
-    # for i in uie_list:
-    #     print(i)
 
     # run_rerank
     word = build_thesaurus(raw_dataset, args.t_path)
     run_rerank(args, uie_list, word)
     exit(0)
-
-    # run_rerank
-    word = build_thesaurus(dataset, args.t_path)
-    # uie 结果路径
-    # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
-    # uie_list = read_list_file(filepath)
-    # run_rerank(args, uie_list, word)  
-    run_rerank(args, uie_list, word)
 
     # all_dict = text_classification(args)
     # all_dict = ensemble_text_classification(args, dataset)
@@ -265,44 +247,4 @@ if __name__ == '__main__':
 
     # evaluate for sentences after extraction
     # evaluate_sentence(extraction_result, classification_result)
-    '''
-    pool = Pool(2)
-    main_logger.info(f'parent pid: {os.getpid()}')
-    result_list = []
-    result_list.append(pool.apply_async(func = ensemble_double_classifications, args = (args, dataset)))
-    result_list.append(pool.apply_async(func = run_information_extraction, args = (args, dataset)))
-    pool.close()
-    pool.join()
-    classification_result = result_list[0].get()
-    print("======================================classification_result======================================")
-    # print(extraction_result)
-    for i in classification_result:
-        print(i)
 
-    extraction_result = result_list[1].get()
-    uie_list = []
-    for i in extraction_result:
-        uie_list = uie_list + i
-
-    print("======================================extraction_result======================================")
-    # print(extraction_result)
-    for i in uie_list:
-        print(i)
-    print("===========================end==============")
-    '''
-
-
-
-
-"""
-    # 跑通了，...
-    res = run_information_extraction(args, dataset)
-    uie_list = []
-    for i in res:
-        uie_list = uie_list + i
-    # run_rerank
-    word = build_thesaurus(dataset, args.t_path)
-    run_rerank(args, uie_list, word)
-    exit(0)
-"""
-    

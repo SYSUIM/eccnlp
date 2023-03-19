@@ -255,7 +255,7 @@ def predict_rank(args, data, reason_list):
             predicted_list.append(i)
     return predicted_list, rerank_reasons, rerank_scores
 
-def validate_rerank(args,data, k):
+def validate_rerank(args, data, k):
     """
     validate the NDCG metric
     :param data: given the testset
@@ -282,7 +282,8 @@ def validate_rerank(args,data, k):
         true_label = true_label[pred_sort_index]
         ndcg_val = ndcg_k(true_label, k)
         ndcg_list.append(ndcg_val)
-    logging.info("np.nanmean(ndcg): %s", np.nanmean(ndcg_list))
+    # logging.info(f'length of test data: {len(data)}')
+    logging.info("np.nanmean(ndcg@%s) of test data: %s", k, np.nanmean(ndcg_list))
     return ndcg_list, predicted_scores
 
 def precision_k(args, data):
