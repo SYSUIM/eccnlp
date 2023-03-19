@@ -162,6 +162,7 @@ def train_rerank(args, training_data, device, model):
     """
 
     qid_doc_map = group_by(training_data, 1)
+    logging.info(f'train data length: {len(qid_doc_map)}')
     query_idx = qid_doc_map.keys()
     # true_scores is a matrix, different rows represent different queries
     true_scores = [training_data[qid_doc_map[qid], 0] for qid in query_idx]
@@ -223,6 +224,7 @@ def predict_rank(args, data, reason_list):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     qid_doc_map = group_by(data, 1)
+    logging.info(f'predict data length: {len(qid_doc_map)}')
     predicted_scores = np.zeros(len(data))
     predicted_list = []
 
@@ -268,6 +270,7 @@ def validate_rerank(args, data, k):
     model = model.to(device)
 
     qid_doc_map = group_by(data, 1)
+    logging.info(f'test data length: {len(qid_doc_map)}')
     ndcg_list = []
     predicted_scores = []
     for qid in qid_doc_map.keys():
