@@ -137,7 +137,7 @@ def run_information_extraction(args, data):
 
     do_train(args, train_data, dev_data)
     
-    result_on_train_data, result_on_dev_data, result_on_test_data = extraction_inference(args, train_data, dev_data, test_data)
+    result_on_train_data, result_on_dev_data, result_on_test_data = extraction_inference(train_data, dev_data, test_data, args.type, args.save_dir, args.position_prob)
     
     return result_on_train_data, result_on_dev_data, result_on_test_data
 
@@ -212,8 +212,8 @@ if __name__ == '__main__':
     print(report, matrix)
 
 
-    res1, res2, res3 = run_information_extraction(args, raw_dataset)
-    uie_list = res1 +res2 +res3
+    result_on_train_data, result_on_dev_data, result_on_test_data = run_information_extraction(args, raw_dataset)
+    uie_list = result_on_train_data + result_on_dev_data + result_on_test_data
 
     # run_rerank
     word = build_thesaurus(raw_dataset, args.t_path)
