@@ -227,14 +227,14 @@ def merge_reasons(args, text_list, num_list, uie_list):
         dic = {}
         reasons = []
         reason_set = set()
-        res_list = []
+        # res_list = []
         dic_rea={}
         for i in id_list:   # iterate over short setences' indexes of a qid
             data_pre = uie_list[i]
             prompt = data_pre["prompt"]
             dic_rea[args.type] = reasons
-            if data_pre["result_list"][0]["text"] != '':
-                res_list.append(data_pre["result_list"][0])            
+            # if data_pre["result_list"][0]["text"] != '':
+            #     res_list.append(data_pre["result_list"][0])            
             data = data_pre["output"][0]
             if len(data) == 0 :
                 continue 
@@ -244,7 +244,7 @@ def merge_reasons(args, text_list, num_list, uie_list):
                     reason_set.add(k['text'])
         dic['raw_text'] = text_list[num_list.index(num)]
         dic['number'] = num
-        dic['result_list'] = res_list
+        dic['result_list'] = data_pre["result_list"]
         dic['prompt'] = prompt
         dic['output'] = [dic_rea]
         # log.info(dic)
@@ -368,9 +368,7 @@ def form_input_data(args, alllist, reason_list):
         if i[1] >= bre:
             test_list.append(i)
             reason_of_test.append(reason_list[alllist.index(i)])
-    logging.info(f'length of all data in rerank :{len(all_list)}')
-    logging.info(f'length of train data in rerank :{len(train_list)}')
-    logging.info(f'length of test data in rerank :{len(test_list)}')
+
     return all_list,train_list,test_list,reason_of_test 
 
 # write uie reasons into reason_list

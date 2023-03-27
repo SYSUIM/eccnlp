@@ -162,34 +162,26 @@ def run_rerank(args, uie_list, word):
     # after_embedding_list = add_embedding(args, uie_list)
     filtered_uie_list_train, context_list, filtered_uie_list_predict = uie_list_filter(args, uie_list)
     after_embedding_list = add_embedding(args, filtered_uie_list_train)
-    # logpath1 = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/embedding/'
-    # log1 = get_logger1("embedding_list",logpath1)
-    # print_list(after_embedding_list, log1)
 
     # #merge reasons
-    text_list, num_list = get_text_list(uie_list)
+    text_list, num_list = get_text_list(filtered_uie_list_train)
     merged_list = merge_reasons(args, text_list, num_list, after_embedding_list)
 
-    # logging.info(f'length of filtered_uie_list: {len(filtered_uie_list)}')
+    logging.info(f'merged_list length: {len(merged_list)}')
     #train
-    # logpath3 = "/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/train_lambdarank/" 
-    # log3 = get_logger2('train_ndcg',logpath3)
-    # epoch = 300
-    # learning_rate = 0.0001
+
     all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list, word)
     training_data = np.array(train_list)
     model = LambdaRank(training_data)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-    # modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter'+datetime.now().strftime("%m_%d_%H_%M_%S")+'.pkl'
     train_rerank(args, training_data, device, model)
 
     # value
     validate_data = np.array(test_list)
     k = 2
     ndcg , pred_scores= validate_rerank(args, validate_data, k)
-    # log3.info("pred_scores: %s", pred_scores)
-    # logging.info("np.nanmean(ndcg): %s", np.nanmean(ndcg))
+
     precision_k(args, validate_data)
 
     return 
