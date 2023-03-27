@@ -49,7 +49,7 @@ def classification(args, dataset):
     return dataset
 
 def extraction(args, dataset):
-    _, _, result = extraction_inference(args, None, None, dataset)
+    _, _, result = extraction_inference(None, None, dataset, args.type, args.save_dir, args.position_prob)
     return result
 
 def rerank_predict(args, uie_list):

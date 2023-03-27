@@ -135,9 +135,22 @@ def run_information_extraction(args, data):
     train_data, dev_data, test_data = dataset_generate_train(args, data)
     logging.info(f'train_data: {len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
 
-    do_train(args, train_data, dev_data)
+    do_train(device = args.device,
+             seed = args.seed,
+             model_dir = args.model_dir,
+             UIE_model = args.UIE_model,
+             UIE_batch_size = args.UIE_batch_size,
+             max_seq_len = args.max_seq_len,
+             init_from_ckpt = args.init_from_ckpt,
+             UIE_learning_rate = args.UIE_learning_rate,
+             UIE_num_epochs = args.UIE_num_epochs,
+             logging_steps = args.logging_steps,
+             valid_steps = args.valid_steps,
+             save_dir = args.save_dir,
+             train_data = train_data,
+             dev_data = dev_data)
     
-    result_on_train_data, result_on_dev_data, result_on_test_data = extraction_inference(args, train_data, dev_data, test_data)
+    result_on_train_data, result_on_dev_data, result_on_test_data = extraction_inference(train_data, dev_data, test_data, args.type, args.save_dir, args.position_prob)
     
     return result_on_train_data, result_on_dev_data, result_on_test_data
 
