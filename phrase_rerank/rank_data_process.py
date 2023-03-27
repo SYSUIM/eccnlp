@@ -227,14 +227,14 @@ def merge_reasons(args, text_list, num_list, uie_list):
         dic = {}
         reasons = []
         reason_set = set()
-        res_list = []
+        # res_list = []
         dic_rea={}
         for i in id_list:   # iterate over short setences' indexes of a qid
             data_pre = uie_list[i]
             prompt = data_pre["prompt"]
             dic_rea[args.type] = reasons
-            if data_pre["result_list"][0]["text"] != '':
-                res_list.append(data_pre["result_list"][0])            
+            # if data_pre["result_list"][0]["text"] != '':
+            #     res_list.append(data_pre["result_list"][0])            
             data = data_pre["output"][0]
             if len(data) == 0 :
                 continue 
@@ -244,7 +244,7 @@ def merge_reasons(args, text_list, num_list, uie_list):
                     reason_set.add(k['text'])
         dic['raw_text'] = text_list[num_list.index(num)]
         dic['number'] = num
-        dic['result_list'] = res_list
+        dic['result_list'] = data_pre["result_list"]
         dic['prompt'] = prompt
         dic['output'] = [dic_rea]
         # log.info(dic)
