@@ -283,15 +283,18 @@ def split_dataset(dataset, train_size, val_size):
 
 
 
-def accuracy_top_k(args, dic, k):
+def accuracy_top_k(dic, k, type):
     '''
     dic:{
-        reslut_list:[{'text': ''}, {'text': ''}],
-        'output': [{ '业绩归因': [{'text': ''}, {'text': ''}] }]
+        'reslut_list':[{'text': ''}, {'text': ''}],
+        'output': [{ type: [{'text': ''}, {'text': ''}] }]
     }
+
+    type: (string) the value of prompt 
+    
     '''
     manual_label = {i['text'] for i in dic['result_list']}
-    uie_res = [i['text'] for i in dic['output'][0][args.type]]
+    uie_res = [i['text'] for i in dic['output'][0][type]]
     k = min(k, len(uie_res))
     correct = sum(1 for i in range(k) if uie_res[i] in manual_label)
     accuracy = correct / k
