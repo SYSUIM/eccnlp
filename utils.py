@@ -283,7 +283,7 @@ def split_dataset(dataset, train_size, val_size):
 
 
 
-def accuracy_k(args, dic, k):
+def accuracy_top_k(args, dic, k):
     '''
     dic:{
         reslut_list:[{'text': ''}, {'text': ''}],
@@ -293,12 +293,9 @@ def accuracy_k(args, dic, k):
     manual_label = {i['text'] for i in dic['result_list']}
     uie_res = [i['text'] for i in dic['output'][0][args.type]]
     k = min(k, len(uie_res))
-    correct = 0
-    for i in range(k):
-        if(uie_res[i] in manual_label):
-            correct += 1 
-    acc = correct / k
-    return acc
+    correct = sum(1 for i in range(k) if uie_res[i] in manual_label)
+    accuracy = correct / k
+    return accuracy
 
 
 if __name__ == '__main__':
