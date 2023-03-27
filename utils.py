@@ -273,12 +273,32 @@ def split_dataset(dataset, train_size, val_size):
         dataset=dataset,
         lengths=[train_len, dev_len, test_len],
         generator=torch.Generator().manual_seed(42)
+        # generator=torch.Generator().manual_seed(0)
     )
     logging.info(f'length of train_dataset: {len(train_dataset)}')
     logging.info(f'length of dev_dataset: {len(dev_dataset)}')
     logging.info(f'length of test_dataset: {len(test_dataset)}')
 
     return train_dataset, dev_dataset, test_dataset
+
+
+
+def accuracy_k(args, dic, k):
+    '''
+    dic:{
+        reslut_list:[{'text': ''}, {'text': ''}],
+        'output': [{ '业绩归因': [{'text': ''}, {'text': ''}] }]
+    }
+    '''
+    manual_label = {i['text'] for i in dic['result_list']}
+    uie_res = [i['text'] for i in dic['output'][0][args.type]]
+    k = min(k, len(uie_res))
+    correct = 0
+    for i in range(k):
+        if(uie_res[i] in manual_label):
+            correct += 1 
+    acc = correct / k
+    return acc
 
 
 if __name__ == '__main__':
