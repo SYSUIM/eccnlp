@@ -217,16 +217,16 @@ if __name__ == '__main__':
     #     print(i)
     # exit(0)
 
-    # report, matrix = BertForClassification(args, raw_dataset)
-    # print(report, matrix)
+    report, matrix = BertForClassification(args, raw_dataset)
+    print(report, matrix)
 
 
     result_on_train_data, result_on_dev_data, result_on_test_data = run_information_extraction(args, raw_dataset)
-    # uie_list = result_on_train_data + result_on_dev_data + result_on_test_data
+    uie_list = result_on_train_data + result_on_dev_data + result_on_test_data
 
     # run_rerank
-    # word = build_thesaurus(raw_dataset, args.t_path)
-    # run_rerank(args, uie_list, word)
+    word = build_thesaurus(raw_dataset, args.t_path)
+    run_rerank(args, uie_list, word)
     exit(0)
 
     # all_dict = text_classification(args)
