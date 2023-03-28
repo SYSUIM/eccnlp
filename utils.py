@@ -293,6 +293,9 @@ def accuracy_top_k(dic, k, type):
     type: (string) the value of prompt 
 
     '''
+    if len(dic['output'][0]) == 0:
+        return 0
+        
     manual_label = {i['text'] for i in dic['result_list']}
     uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True )]
     k = min(k, len(uie_res))
