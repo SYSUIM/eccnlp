@@ -66,6 +66,8 @@ def get_arguments():
     parser.add_argument("--UIE_batch_size", type=int, default=16, help="Batch size per GPU/CPU for training.")
     parser.add_argument("--max_seq_len", type=int, default=512, help="The maximum total input sequence length after tokenization.")
     parser.add_argument("--debug", action='store_true', help="Precision, recall and F1 score are calculated for each class separately if this option is enabled.")
+    parser.add_argument("--position_prob", default=0.2, type=float, help="threshold of position probability in uie res")
+    
     # --model_path ./checkpoint_short/model_6700 
     # --test_path ./data/test_data.txt 
     # --batch_size 16 
