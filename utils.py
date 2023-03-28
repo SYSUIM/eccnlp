@@ -287,14 +287,14 @@ def accuracy_top_k(dic, k, type):
     '''
     dic:{
         'reslut_list':[{'text': ''}, {'text': ''}],
-        'output': [{ type: [{'text': ''}, {'text': ''}] }]
+        'output': [{ type: [{'text': '','probability':value}, {'text': '','probability':value}] }]
     }
 
     type: (string) the value of prompt 
-    
+
     '''
     manual_label = {i['text'] for i in dic['result_list']}
-    uie_res = [i['text'] for i in dic['output'][0][type]]
+    uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True )]
     k = min(k, len(uie_res))
     correct = sum(1 for i in range(k) if uie_res[i] in manual_label)
     accuracy = correct / k
