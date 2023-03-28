@@ -87,6 +87,7 @@ def get_arguments():
     parser.add_argument("--UIE_model", choices=["uie-base", "uie-tiny", "uie-medium", "uie-mini", "uie-micro", "uie-nano"], default="uie-base", type=str, help="Select the pretrained model for few-shot learning.")
     parser.add_argument("--model_dir", default="/data/pzy2022/paddlepaddle/taskflow/", type=str, help="The pretrained model dir for few-shot learning.")
     parser.add_argument("--init_from_ckpt", default=None, type=str, help="The path of model parameters for initialization.")
+    parser.add_argument("--accuracy_k", default=2, type=int, help="k for accuracy@k")
     # --train_path /data/pzy2022/project/test/test_data.txt 
     # --dev_path ./data/train_validation_test/dataset1/validation_data.txt 
     # --save_dir ./checkpoint/checkpoint3_20221017 

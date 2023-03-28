@@ -5,7 +5,7 @@ import argparse
 import logging
 from multiprocessing import Process, Pool
 
-from utils import read_list_file, evaluate_sentence, get_logger, check_log_dir, split_train_datasets
+from utils import read_list_file, evaluate_sentence, get_logger, check_log_dir, split_train_datasets, accuracy_top_k
 import config
 from config import re_filter
 
@@ -152,6 +152,9 @@ def run_information_extraction(args, data):
     
     result_on_train_data, result_on_dev_data, result_on_test_data = extraction_inference(train_data, dev_data, test_data, args.type, args.save_dir, args.position_prob)
     
+    accuracy_list = [accuracy_top_k(data, args.accaracy_k, args.type) for data in result_on_test_data]
+    logging.info(f'average accuracy on test_data_uie_res: {np.mean(accuracy_list)}')
+
     return result_on_train_data, result_on_dev_data, result_on_test_data
 
 
@@ -213,16 +216,16 @@ if __name__ == '__main__':
     #     print(i)
     # exit(0)
 
-    report, matrix = BertForClassification(args, raw_dataset)
-    print(report, matrix)
+    # report, matrix = BertForClassification(args, raw_dataset)
+    # print(report, matrix)
 
 
     result_on_train_data, result_on_dev_data, result_on_test_data = run_information_extraction(args, raw_dataset)
-    uie_list = result_on_train_data + result_on_dev_data + result_on_test_data
+    # uie_list = result_on_train_data + result_on_dev_data + result_on_test_data
 
     # run_rerank
-    word = build_thesaurus(raw_dataset, args.t_path)
-    run_rerank(args, uie_list, word)
+    # word = build_thesaurus(raw_dataset, args.t_path)
+    # run_rerank(args, uie_list, word)
     exit(0)
 
     # all_dict = text_classification(args)
