@@ -132,7 +132,7 @@ def ensemble_double_classifications(args, dataset):
 
 
 def run_information_extraction(args, data):
-    train_data, dev_data, test_data = dataset_generate_train(args, data)
+    train_data, dev_data, test_data = dataset_generate_train(args.train_size, args.val_size, data)
     logging.info(f'train_data: {len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
 
     do_train(device = args.device,

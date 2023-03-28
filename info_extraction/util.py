@@ -137,6 +137,7 @@ def convert_example(example, tokenizer, max_seq_len):
                                return_dict=False,
                                return_offsets_mapping=True)
     encoded_inputs = encoded_inputs[0]
+    # tokenizer.decode(encoded_inputs['input_ids'], skip_special_tokens=False)
     offset_mapping = [list(x) for x in encoded_inputs["offset_mapping"]]
     bias = 0
     for index in range(1, len(offset_mapping)):

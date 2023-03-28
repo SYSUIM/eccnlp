@@ -78,17 +78,17 @@ def data_process(filter_number: set, original_data: list):
                 
 
 
-def dataset_split(args, data_list: list):
+def dataset_split(train_size, val_size, data_list: list):
     train_data = []
     dev_data = []
     test_data = []
 
-    train_data, dev_data, test_data = split_dataset(data_list, args.train_size, args.val_size)
+    train_data, dev_data, test_data = split_dataset(data_list, train_size, val_size)
 
     return train_data, dev_data, test_data
 
 
-def dataset_generate_train(args, data_list):
+def dataset_generate_train(train_size, val_size, data_list):
     # from utils import get_logger, get_log_path
     # ext_logger = get_logger('ext_logger', get_log_path() + '/ext.log')
 
@@ -98,7 +98,7 @@ def dataset_generate_train(args, data_list):
     cutted_data = data_process(filted_data, data_list)
     logging.info(f'generate datasetlength: {len(cutted_data)}')
 
-    train_data, dev_data, test_data = dataset_split(args, cutted_data)
+    train_data, dev_data, test_data = dataset_split(train_size, val_size, cutted_data)
 
     return train_data, dev_data, test_data
 

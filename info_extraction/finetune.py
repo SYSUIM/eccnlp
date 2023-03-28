@@ -38,15 +38,15 @@ def do_train(device,
     from paddlenlp.datasets import load_dataset
     from paddlenlp.transformers import AutoTokenizer
     from paddlenlp.metrics import SpanEvaluator
-    # from paddlenlp.utils.log import logger
+    from paddlenlp.utils.log import logger
 
     from info_extraction.model import UIE
     from info_extraction.evaluate import evaluate
-    from info_extraction.utils import set_seed, convert_example, reader, MODEL_MAP
+    from info_extraction.util import set_seed, convert_example, reader, MODEL_MAP
 
     from utils import get_logger, get_log_path
 
-    ext_logger = get_logger('ext_logger', get_log_path() + '/ext.log')
+    # ext_logger = get_logger('ext_logger', get_log_path() + '/ext.log')
 
     paddle.set_device(device)
     rank = paddle.distributed.get_rank()
@@ -57,7 +57,7 @@ def do_train(device,
 
     resource_file_urls = MODEL_MAP[UIE_model]['resource_file_urls']
 
-    ext_logger.info("Downloading resource files...")
+    # ext_logger.info("Downloading resource files...")
     for key, val in resource_file_urls.items():
         file_path = os.path.join(model_dir, UIE_model, key)
         if not os.path.exists(file_path):
@@ -112,9 +112,9 @@ def do_train(device,
     tic_train = time.time()
     for epoch in range(1, UIE_num_epochs + 1):
         for batch in train_data_loader:
-            input_ids, token_type_ids, att_mask, pos_ids, start_ids, end_ids = batch
-            start_prob, end_prob = model(input_ids, token_type_ids, att_mask,
-                                         pos_ids)
+            input_ids, token_type_ids, pos_ids, att_mask, start_ids, end_ids = batch
+            start_prob, end_prob = model(input_ids, token_type_ids, pos_ids,
+                                         att_mask)
             start_ids = paddle.cast(start_ids, 'float32')
             end_ids = paddle.cast(end_ids, 'float32')
             loss_start = criterion(start_prob, start_ids)
@@ -129,7 +129,7 @@ def do_train(device,
             if global_step % logging_steps == 0 and rank == 0:
                 time_diff = time.time() - tic_train
                 loss_avg = sum(loss_list) / len(loss_list)
-                ext_logger.info(
+                logger.info(
                     "global step %d, epoch: %d, loss: %.5f, speed: %.2f step/s"
                     % (global_step, epoch, loss_avg,
                        logging_steps / time_diff))
@@ -147,11 +147,11 @@ def do_train(device,
                 # ext_logger.enable()
 
                 precision, recall, f1 = evaluate(model, metric, dev_data_loader)
-                ext_logger.info(
+                logger.info(
                     "Evaluation precision: %.5f, recall: %.5f, F1: %.5f" %
                     (precision, recall, f1))
                 if f1 > best_f1:
-                    ext_logger.info(
+                    logger.info(
                         f"best F1 performence has been updated: {best_f1:.5f} --> {f1:.5f}"
                     )
                     best_f1 = f1
@@ -164,4 +164,41 @@ def do_train(device,
 
 
 if __name__ == "__main__":
-    pass
+    import sys
+    import logging
+    sys.path.append('/data2/panziyang/project/eccnlp/eccnlp')
+
+    device = 'gpu'
+    seed = 42
+    model_dir = '/data/pzy2022/paddlepaddle/taskflow/'
+    UIE_model = 'uie-base'
+    UIE_batch_size = 32
+    max_seq_len = 512
+    init_from_ckpt = None
+    UIE_learning_rate = 1e-06
+    UIE_num_epochs = 50
+    logging_steps = 100
+    valid_steps = 100000
+    save_dir = '/data/fkj2023/Project/eccnlp/checkpoint/20230325'
+    
+    from utils import read_list_file
+    from data_process.info_extraction import dataset_generate_train
+
+    data = read_list_file('/data/zyx2022/FinanceText/process_file/2.2_raw_dataset_dict_nocut_uni_no.txt')
+    train_data, dev_data, test_data = dataset_generate_train(0.8, 0.1, data)
+    print(f'train_data: {len(train_data)}, dev_data: {len(dev_data)}, test_data: {len(test_data)}')
+
+    do_train(device = device,
+             seed = seed,
+             model_dir = model_dir,
+             UIE_model = UIE_model,
+             UIE_batch_size = UIE_batch_size,
+             max_seq_len = max_seq_len,
+             init_from_ckpt = init_from_ckpt,
+             UIE_learning_rate = UIE_learning_rate,
+             UIE_num_epochs = UIE_num_epochs,
+             logging_steps = logging_steps,
+             valid_steps = valid_steps,
+             save_dir = save_dir,
+             train_data = train_data,
+             dev_data = dev_data)
