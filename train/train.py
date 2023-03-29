@@ -154,7 +154,7 @@ def run_information_extraction(args, data):
     
     filted_result_on_test_data = [data for data in result_on_test_data if len(data['output'][0]) != 0]
     accuracy_list = [accuracy_top_k(data, args.accuracy_k, args.type) for data in filted_result_on_test_data]
-    logging.info(f'average accuracy on test_data_uie_res: {np.mean(accuracy_list)}')
+    logging.info(f'average accuracy on filted_test_data_uie_res: {np.mean(accuracy_list)}')
 
     return result_on_train_data, result_on_dev_data, result_on_test_data
 
