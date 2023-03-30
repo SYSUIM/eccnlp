@@ -315,7 +315,7 @@ def AP(dic,type):
     manual_label = {i['text'] for i in dic['result_list']}
     uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True )]
     ap = [1/(uie_res.index(data)+1) for data in uie_res if data in manual_label]
-    ap = np.mean([data * (ap.index(data)+1) for data in ap]) if len(ap) != 0 else 0
+    ap = sum([data * (ap.index(data)+1) for data in ap])/len(manual_label) if len(ap) != 0 else 0
     return ap
 
 
