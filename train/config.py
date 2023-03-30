@@ -66,6 +66,8 @@ def get_arguments():
     parser.add_argument("--UIE_batch_size", type=int, default=16, help="Batch size per GPU/CPU for training.")
     parser.add_argument("--max_seq_len", type=int, default=512, help="The maximum total input sequence length after tokenization.")
     parser.add_argument("--debug", action='store_true', help="Precision, recall and F1 score are calculated for each class separately if this option is enabled.")
+    parser.add_argument("--position_prob", default=0.2, type=float, help="threshold of position probability in uie res")
+    
     # --model_path ./checkpoint_short/model_6700 
     # --test_path ./data/test_data.txt 
     # --batch_size 16 
@@ -87,6 +89,7 @@ def get_arguments():
     parser.add_argument("--UIE_model", choices=["uie-base", "uie-tiny", "uie-medium", "uie-mini", "uie-micro", "uie-nano"], default="uie-base", type=str, help="Select the pretrained model for few-shot learning.")
     parser.add_argument("--model_dir", default="/data/pzy2022/paddlepaddle/taskflow/", type=str, help="The pretrained model dir for few-shot learning.")
     parser.add_argument("--init_from_ckpt", default=None, type=str, help="The path of model parameters for initialization.")
+    parser.add_argument("--accuracy_k", default=2, type=int, help="k for accuracy@k")
     # --train_path /data/pzy2022/project/test/test_data.txt 
     # --dev_path ./data/train_validation_test/dataset1/validation_data.txt 
     # --save_dir ./checkpoint/checkpoint3_20221017 

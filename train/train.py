@@ -5,7 +5,7 @@ import argparse
 import logging
 from multiprocessing import Process, Pool
 
-from utils import read_list_file, evaluate_sentence, get_logger, check_log_dir, split_train_datasets
+from utils import read_list_file, evaluate_sentence, get_logger, check_log_dir, split_train_datasets, accuracy_top_k, RR, AP
 import config
 from config import re_filter
 
@@ -152,6 +152,24 @@ def run_information_extraction(args, data):
     
     result_on_train_data, result_on_dev_data, result_on_test_data = extraction_inference(train_data, dev_data, test_data, args.type, args.save_dir, args.position_prob)
     
+    filted_result_on_test_data = [data for data in result_on_test_data if len(data['output'][0]) != 0]
+
+    # accuracy_list = [accuracy_top_k(data, args.accuracy_k, args.type) for data in filted_result_on_test_data]
+    accuracy_list_1 = [accuracy_top_k(data, k = 1, type = args.type) for data in filted_result_on_test_data]
+    accuracy_list_2 = [accuracy_top_k(data, k = 2, type = args.type) for data in filted_result_on_test_data]
+    accuracy_list_3 = [accuracy_top_k(data, k = 3, type = args.type) for data in filted_result_on_test_data]
+    accuracy_list_all = [accuracy_top_k(data, k = 20, type = args.type) for data in filted_result_on_test_data]
+    logging.info(f'average accuracy@1 on filted_test_data_uie_res: {np.mean(accuracy_list_1)}')
+    logging.info(f'average accuracy@2 on filted_test_data_uie_res: {np.mean(accuracy_list_2)}')
+    logging.info(f'average accuracy@3 on filted_test_data_uie_res: {np.mean(accuracy_list_3)}')
+    logging.info(f'average accuracy@all on filted_test_data_uie_res: {np.mean(accuracy_list_all)}')    
+
+    rr = [RR(data, type = args.type) for data in filted_result_on_test_data]
+    logging.info(f'MRR on filted_test_data_uie_res: {np.mean(rr)}')
+
+    ap = [AP(data, type = args.type) for data in filted_result_on_test_data]
+    logging.info(f'MAP on filted_test_data_uie_res: {np.mean(ap)}')
+
     return result_on_train_data, result_on_dev_data, result_on_test_data
 
 
