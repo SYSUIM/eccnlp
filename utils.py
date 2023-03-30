@@ -303,6 +303,21 @@ def accuracy_top_k(dic, k, type):
     accuracy = correct / k
     return accuracy
 
+def RR(dic,type):
+    manual_label = {i['text'] for i in dic['result_list']}
+    uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True )]
+    rr = [1/(uie_res.index(data)+1) for data in uie_res if data in manual_label]
+    rr = rr[0] if len(rr) != 0 else 0
+    return rr
+   
+
+def AP(dic,type):
+    manual_label = {i['text'] for i in dic['result_list']}
+    uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True )]
+    ap = [1/(uie_res.index(data)+1) for data in uie_res if data in manual_label]
+    ap = np.mean([data * (ap.index(data)+1) for data in ap]) if len(ap) != 0 else 0
+    return ap
+
 
 if __name__ == '__main__':
     # test for read_list_file
