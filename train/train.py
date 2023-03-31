@@ -193,7 +193,8 @@ def run_rerank(args, uie_list, word, filted_result_on_test_data):
     model = LambdaRank(training_data)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-    # train_rerank(args, training_data, device, model)
+    
+    train_rerank(args, training_data, device, model)
 
 
     # evaluate
