@@ -283,7 +283,7 @@ def split_dataset(dataset, train_size, val_size):
 
 
 
-def accuracy_top_k(dic, k, type):
+def accuracy_k(dic, model, type, k):
     '''
     dic:{
         'reslut_list':[{'text': ''}, {'text': ''}],
@@ -298,23 +298,34 @@ def accuracy_top_k(dic, k, type):
         
     manual_label = {i['text'] for i in dic['result_list']}
     uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True )]
-    k = min(k, len(uie_res))
-    correct = sum(1 for i in range(k) if uie_res[i] in manual_label)
+
+    model_res = uie_res if model == 'uie' else dic['rerank']  
+
+    k = min(k, len(model_res))
+    correct = sum(1 for i in range(k) if model_res[i] in manual_label)
     accuracy = correct / k
     return accuracy
 
-def RR(dic,type):
+def reciprocal_rank_k(dic, model, type, k):
     manual_label = {i['text'] for i in dic['result_list']}
     uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True )]
-    rr = [1/(uie_res.index(data)+1) for data in uie_res if data in manual_label]
+
+    model_res = uie_res if model == 'uie' else dic['rerank']   
+
+    model_res = model_res[:min(k, len(model_res))]
+    rr = [1/(model_res.index(data)+1) for data in model_res if data in manual_label]
     rr = rr[0] if len(rr) != 0 else 0
     return rr
    
 
-def AP(dic,type):
+def average_precision_k(dic, model, type, k):
     manual_label = {i['text'] for i in dic['result_list']}
     uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True )]
-    ap = [1/(uie_res.index(data)+1) for data in uie_res if data in manual_label]
+
+    model_res = uie_res if model == 'uie' else dic['rerank']  
+
+    model_res = model_res[:min(k, len(model_res))]
+    ap = [1/(model_res.index(data)+1) for data in model_res if data in manual_label]
     ap = sum([data * (ap.index(data)+1) for data in ap])/len(manual_label) if len(ap) != 0 else 0
     return ap
 

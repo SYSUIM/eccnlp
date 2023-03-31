@@ -71,7 +71,7 @@ def rerank_predict(args, uie_list):
 if __name__ == '__main__':
     args = config.get_arguments()
 
-    # log_path = check_log_dir(args.time) 
+    log_path = check_log_dir(args.time) 
     # print(log_path)
     # exit(0)
  
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     # dataset = re_filter(dataset)
 
     filtedDataset = bertFilter(args, dataset)
-    with open("./log/" + datetime.now().strftime("%Y-%m-%d")+"_3.1_bertfiltedDataset_test.txt", 'w') as f:
+    with open(log_path +"/2.2_uni_bertfiltedDataset.txt", 'w') as f:
         [f.write(str(data) + '\n') for data in filtedDataset]    
 
     # train_data, dev_data, test_data = dataset_generate_train(args, dataset)
@@ -106,7 +106,8 @@ if __name__ == '__main__':
     # with open("./after_extraction_data3.1DoubleEnsemble.txt", 'w') as f:
     #     [f.write(str(data) + '\n') for data in result]
     # # evaluate_sentence(result, clf)
-
+    with open(log_path +"/2.2_uni_uie_res.txt", 'w') as f:
+        [f.write(str(data) + '\n') for data in result ]  
 
     # phrase_rerank
 
@@ -115,7 +116,7 @@ if __name__ == '__main__':
     # rerank_res = rerank_predict(args, uie_list)
     rerank_res = rerank_predict(args, result)   
     
-    with open("./log/" + datetime.now().strftime("%Y-%m-%d")+"_3.1_res_add_rerank_test.txt", 'w') as f:
+    with open(log_path +"/2.2_uni_add_rerank.txt", 'w') as f:
         [f.write(str(data) + '\n') for data in rerank_res]    
 
 

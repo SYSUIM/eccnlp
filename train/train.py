@@ -5,7 +5,7 @@ import argparse
 import logging
 from multiprocessing import Process, Pool
 
-from utils import read_list_file, evaluate_sentence, get_logger, check_log_dir, split_train_datasets, accuracy_top_k, RR, AP
+from utils import read_list_file, evaluate_sentence, get_logger, check_log_dir, split_train_datasets, accuracy_k, reciprocal_rank_k, average_precision_k
 import config
 from config import re_filter
 
@@ -25,13 +25,12 @@ from data_process.info_extraction import dataset_generate_train
 
 
 # phrase rerank
-from phrase_rerank.rank_data_process import get_logger1, get_logger2, form_input_list, print_list, add_embedding, get_text_list, merge_reasons, read_word, uie_list_filter
-from phrase_rerank.lambdarank import LambdaRank, train_rerank, validate_rerank, precision_k
+from phrase_rerank.rank_data_process import form_input_list, add_embedding, get_text_list, merge_reasons, read_word, uie_list_filter, split_rerank_data, form_predict_input_list
+from phrase_rerank.lambdarank import LambdaRank, train_rerank, validate_rerank, precision_k, predict_rank, add_rerank
 from datetime import datetime
 import numpy as np
 import torch
-from config import re_filter
-from utils import read_list_file, get_logger, check_log_dir
+from utils import read_list_file, check_log_dir
 import config
 from data_process.dataprocess import build_thesaurus
 
@@ -52,6 +51,17 @@ from data_process.dataprocess import build_thesaurus
 #     logger.addHandler(fileHandler)
 
 #     return logger
+
+
+def evaluate_model(model_name, model_res_list):
+    k_values = [1, 2, 3, 4, 5, 20]
+    metrics = [('accuracy', accuracy_k), ('MRR', reciprocal_rank_k), ('MAP', average_precision_k)]
+
+    for metric_name, metric_func in metrics:
+        for k in k_values:        
+            scores = [metric_func(data, model_name, args.type, k) for data in model_res_list]
+            logging.info(f'{metric_name}@{k} on filted_test_data_uie_res: {np.mean(scores)}')
+
 
 
 def text_classification(args, data):
@@ -153,28 +163,15 @@ def run_information_extraction(args, data):
     result_on_train_data, result_on_dev_data, result_on_test_data = extraction_inference(train_data, dev_data, test_data, args.type, args.save_dir, args.position_prob)
     
     filted_result_on_test_data = [data for data in result_on_test_data if len(data['output'][0]) != 0]
+    logging.info(f'length of filted_result_on_test_data: {len(filted_result_on_test_data)}')
 
-    # accuracy_list = [accuracy_top_k(data, args.accuracy_k, args.type) for data in filted_result_on_test_data]
-    accuracy_list_1 = [accuracy_top_k(data, k = 1, type = args.type) for data in filted_result_on_test_data]
-    accuracy_list_2 = [accuracy_top_k(data, k = 2, type = args.type) for data in filted_result_on_test_data]
-    accuracy_list_3 = [accuracy_top_k(data, k = 3, type = args.type) for data in filted_result_on_test_data]
-    accuracy_list_all = [accuracy_top_k(data, k = 20, type = args.type) for data in filted_result_on_test_data]
-    logging.info(f'average accuracy@1 on filted_test_data_uie_res: {np.mean(accuracy_list_1)}')
-    logging.info(f'average accuracy@2 on filted_test_data_uie_res: {np.mean(accuracy_list_2)}')
-    logging.info(f'average accuracy@3 on filted_test_data_uie_res: {np.mean(accuracy_list_3)}')
-    logging.info(f'average accuracy@all on filted_test_data_uie_res: {np.mean(accuracy_list_all)}')    
+    evaluate_model('uie', filted_result_on_test_data)
 
-    rr = [RR(data, type = args.type) for data in filted_result_on_test_data]
-    logging.info(f'MRR on filted_test_data_uie_res: {np.mean(rr)}')
-
-    ap = [AP(data, type = args.type) for data in filted_result_on_test_data]
-    logging.info(f'MAP on filted_test_data_uie_res: {np.mean(ap)}')
-
-    return result_on_train_data, result_on_dev_data, result_on_test_data
+    return result_on_train_data, result_on_dev_data, result_on_test_data, filted_result_on_test_data
 
 
 
-def run_rerank(args, uie_list, word):
+def run_rerank(args, uie_list, word, filted_result_on_test_data):
 
     #embedding
     # after_embedding_list = add_embedding(args, uie_list)
@@ -184,23 +181,40 @@ def run_rerank(args, uie_list, word):
     # #merge reasons
     text_list, num_list = get_text_list(filtered_uie_list_train)
     merged_list = merge_reasons(args, text_list, num_list, after_embedding_list)
+    train_merged_list, test_merged_list = split_rerank_data(merged_list)
 
     logging.info(f'merged_list length: {len(merged_list)}')
-    #train
+    logging.info(f'train_merged_list length: {len(train_merged_list)}')
+    logging.info(f'test_merged_list length: {len(test_merged_list)}')
 
-    all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list, word)
+    #train
+    train_list, reason_of_train = form_input_list(args, train_merged_list, word)
     training_data = np.array(train_list)
     model = LambdaRank(training_data)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-    train_rerank(args, training_data, device, model)
+    # train_rerank(args, training_data, device, model)
 
-    # value
-    validate_data = np.array(test_list)
-    k = 2
-    ndcg , pred_scores= validate_rerank(args, validate_data, k)
 
-    precision_k(args, validate_data)
+    # evaluate
+    test_list, test_reason = form_predict_input_list(args, test_merged_list, word)
+    test_data = np.array(test_list)
+    ndcg , pred_scores= validate_rerank(args, test_data, 2)
+     
+    # compare
+    logging.info(f'compare rerank_res with uie_res on filted_result_on_uie_test_data...')
+    logging.info(f'length of filted_result_on_test_data: {len(filted_result_on_test_data)}')
+    filted_result_on_uie_test_data = add_embedding(args, filted_result_on_test_data)
+    test_list_uie, test_reason_uie = form_predict_input_list(args, filted_result_on_uie_test_data, word)
+    test_data_uie = np.array(test_list_uie)
+    predicted_list, rerank_reasons, rerank_scores = predict_rank(args, test_data_uie, test_reason_uie)
+    rerank_res_on_uie_filted_test_data = add_rerank(args, rerank_reasons, rerank_scores, filted_result_on_uie_test_data)
+    logging.info(f'length of rerank_res_on_uie_filted_test_data: {len(rerank_res_on_uie_filted_test_data)}')
+    
+    evaluate_model('rerank', rerank_res_on_uie_filted_test_data)
+    
+
+    # precision_k(args, test_data)
 
     return 
 
@@ -235,13 +249,13 @@ if __name__ == '__main__':
     print(report, matrix)
 
 
-    result_on_train_data, result_on_dev_data, result_on_test_data = run_information_extraction(args, raw_dataset)
+    result_on_train_data, result_on_dev_data, result_on_test_data, filted_result_on_test_data = run_information_extraction(args, raw_dataset)
     uie_list = result_on_train_data + result_on_dev_data + result_on_test_data
 
     # run_rerank
     word = build_thesaurus(raw_dataset, args.t_path)
-    run_rerank(args, uie_list, word)
-    exit(0)
+    run_rerank(args, uie_list, word, filted_result_on_test_data)
+    # exit(0)
 
     # all_dict = text_classification(args)
     # all_dict = ensemble_text_classification(args, dataset)

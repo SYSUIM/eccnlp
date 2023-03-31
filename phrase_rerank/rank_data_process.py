@@ -355,21 +355,34 @@ def form_input_vector(all_rows,cnt):
 # train_list: test_list = 7:3
 def form_input_data(args, alllist, reason_list):
     all_list=[]
-    train_list=[]
-    test_list=[]
+    # train_list=[]
+    # test_list=[]
     reason_of_test=[]
-    len_data=len(alllist)
-    qid_num = alllist[len_data - 1][1] + 1
-    bre = int(math.floor(qid_num*0.7))
+    # len_data=len(alllist)
+    # qid_num = alllist[len_data - 1][1] + 1
+    # bre = int(math.floor(qid_num*0.7))
     for i in alllist:
         all_list.append(i)
-        if i[1] < bre :
-            train_list.append(i)
-        if i[1] >= bre:
-            test_list.append(i)
-            reason_of_test.append(reason_list[alllist.index(i)])
+        # if i[1] < bre :
+        #     train_list.append(i)
+        # if i[1] >= bre:
+        #     test_list.append(i)
+        reason_of_test.append(reason_list[alllist.index(i)])
 
-    return all_list,train_list,test_list,reason_of_test 
+    return all_list, reason_of_test 
+
+def split_rerank_data(merged_list):
+    train_list = []
+    test_list = []
+    bre = int(math.floor(len(merged_list)*0.7))
+    for i in range(len(merged_list)):
+        if i < bre:
+            train_list.append(merged_list[i])
+        else:
+            test_list.append(merged_list[i])
+
+    return train_list, test_list
+
 
 # write uie reasons into reason_list
 def write_reason(args, data, reason_list):
@@ -419,8 +432,8 @@ def form_input_list(args, merged_list, vocab):
     cnt = normalize(pro_cnt)
     list_len=len(all_rows)
     all = form_input_vector(all_rows,cnt)
-    all_list,train_list,test_list,reason_of_test = form_input_data(args, all, reason_list)
-    return all_list, train_list, test_list, reason_of_test
+    all_list, reason_of_test = form_input_data(args, all, reason_list)
+    return all_list, reason_of_test
 
 
 def form_predict_input_list(args, merged_list, vocab):
@@ -450,7 +463,7 @@ def form_predict_input_list(args, merged_list, vocab):
             all_rows = generate_label(line_elem,all_rows) 
     cnt = normalize(pro_cnt)
     all = form_input_vector(all_rows,cnt)
-    all_list,train_list,test_list,useless_reason= form_input_data(args, all, reasons)
+    all_list,useless_reason= form_input_data(args, all, reasons)
     return all_list, reasons
 
 
