@@ -220,7 +220,8 @@ def train_rerank(args, training_data, device, model):
 def predict_rank(args, data, reason_list):
 
     model = LambdaRank(data)
-    model.load_state_dict(torch.load(args.lambdarank_path))
+    # model.load_state_dict(torch.load(args.lambdarank_path))
+    model.load_state_dict(torch.load(args.rerank_save_path))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     qid_doc_map = group_by(data, 1)
@@ -257,7 +258,7 @@ def predict_rank(args, data, reason_list):
             predicted_list.append(i)
     return predicted_list, rerank_reasons, rerank_scores
 
-def validate_rerank(args, data, k):
+def validate_rerank(args, data, ndcgk):
     """
     validate the NDCG metric
     :param data: given the testset
@@ -280,13 +281,13 @@ def validate_rerank(args, data, k):
         # calculate the predicted NDCG
         true_label = data[qid_doc_map[qid], 0]
         predicted_scores.append([sub_pred_score, true_label])
-        k = len(true_label)
+        k = min(ndcgk,len(true_label))
         pred_sort_index = np.argsort(sub_pred_score)[::-1]
         true_label = true_label[pred_sort_index]
         ndcg_val = ndcg_k(true_label, k)
         ndcg_list.append(ndcg_val)
     # logging.info(f'length of test data: {len(data)}')
-    logging.info("np.nanmean(ndcg@%s) of test data: %s", k, np.nanmean(ndcg_list))
+    logging.info("np.nanmean(ndcg@%s) of test data: %s", ndcgk, np.nanmean(ndcg_list))
     return ndcg_list, predicted_scores
 
 def precision_k(args, data):
