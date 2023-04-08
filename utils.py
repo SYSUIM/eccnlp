@@ -281,12 +281,18 @@ def split_dataset(dataset, train_size, val_size):
 
     return train_dataset, dev_dataset, test_dataset
 
-def match(set, string):
-    for data in set:
-        if data in string or string in data:
+
+def substr2(string):
+    return {string[i:i+2] for i in range(len(string)-1)}
+
+
+
+def match(label_set, string):
+    for data in label_set:
+        # if set(data) & set(string) :
+        if substr2(data) & substr2(string) :
             return True
     return False
-
 
 def accuracy_k(dic, model, type, k):
     '''
