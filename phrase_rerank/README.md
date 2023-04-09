@@ -7,6 +7,12 @@ pytorch 1.7.0+cu110
 # lambdarank.py
 参考https://github.com/Jabberwockleo  
 
+特征向量（3类）：    
+1. uie推理的概率probability (1维)  
+2. 原因中的词的词频 (用所有的人工标注先构建了一个词库，词频越大，我们认为它越可能是一个原因）(1维)  
+3. bert编码的上下文特征向量 (1536维）(768+768)  
+
+
 # bert.py  
 使用预训练模型对短句(项目中用于对uie抽取原因的左边全部字段和右边全部字段）进行编码  
 下载地址:https://huggingface.co/bert-base-chinese/tree/main  

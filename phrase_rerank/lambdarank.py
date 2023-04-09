@@ -210,7 +210,8 @@ def train_rerank(args, training_data, device, model):
                 true_label = true_label[pred_sort_index]
                 ndcg_val = ndcg_k(true_label, k)
                 ndcg_list.append(ndcg_val)
-            logging.info('Epoch:{}, Average NDCG : {}'.format(i, np.nanmean(ndcg_list)))
+            if i%10 ==0:
+                logging.info('Epoch:{}, Average NDCG : {}'.format(i, np.nanmean(ndcg_list)))
     logging.info(model.state_dict().keys())   # output model parameter name
     torch.save(model.state_dict(), args.rerank_save_path)
     logging.info("model saved in %s", args.rerank_save_path)
@@ -220,7 +221,14 @@ def train_rerank(args, training_data, device, model):
 def predict_rank(args, data, reason_list):
 
     model = LambdaRank(data)
-    model.load_state_dict(torch.load(args.lambdarank_path))
+    # model.load_state_dict(torch.load(args.lambdarank_path))
+    model.load_state_dict(torch.load(args.rerank_save_path))
+
+    # for name, param in model.named_parameters():
+    #     if param.requires_grad:
+    #         print(name, param.data)
+
+    # return 0
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     qid_doc_map = group_by(data, 1)
@@ -257,7 +265,7 @@ def predict_rank(args, data, reason_list):
             predicted_list.append(i)
     return predicted_list, rerank_reasons, rerank_scores
 
-def validate_rerank(args, data, k):
+def validate_rerank(args, data, ndcgk):
     """
     validate the NDCG metric
     :param data: given the testset
@@ -280,13 +288,13 @@ def validate_rerank(args, data, k):
         # calculate the predicted NDCG
         true_label = data[qid_doc_map[qid], 0]
         predicted_scores.append([sub_pred_score, true_label])
-        k = len(true_label)
+        k = min(ndcgk,len(true_label))
         pred_sort_index = np.argsort(sub_pred_score)[::-1]
         true_label = true_label[pred_sort_index]
         ndcg_val = ndcg_k(true_label, k)
         ndcg_list.append(ndcg_val)
     # logging.info(f'length of test data: {len(data)}')
-    logging.info("np.nanmean(ndcg@%s) of test data: %s", k, np.nanmean(ndcg_list))
+    logging.info("np.nanmean(ndcg@%s) of test data: %s", ndcgk, np.nanmean(ndcg_list))
     return ndcg_list, predicted_scores
 
 def precision_k(args, data):
@@ -364,6 +372,12 @@ if __name__ == '__main__':
     parser.add_argument('--code_length', type=int, default=16,help='the dimension of sentence features') 
     args = parser.parse_args()
 
+
+    model = LambdaRank(data)
+    # model.load_state_dict(torch.load(args.lambdarank_path))
+    model.load_state_dict(torch.load(args.rerank_save_path))
+
+
     # # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/test/test.txt'
     # filepath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/info_extraction_result_1222.txt'
     # # uie 结果路径
@@ -393,13 +407,13 @@ if __name__ == '__main__':
     # train(training_data, learning_rate, epoch, modelpath, device, model, log2)
 
 
-    word = read_word('/data/fkj2023/Project/eccnlp_local/data/word.log')
-    filepath ='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/2023-03-02_merged_list.log'
-    merged_list = read_list(filepath)
-    modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter.pkl'
-    predict_list, reasons = form_predict_input_list(args, merged_list, word)
-    predict_data = np.array(predict_list)
-    predicted_list, rerank_reasons, rerank_scores = predict(predict_list, reasons ,modelpath)
+    # word = read_word('/data/fkj2023/Project/eccnlp_local/data/word.log')
+    # filepath ='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/2023-03-02_merged_list.log'
+    # merged_list = read_list(filepath)
+    # modelpath = '/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter.pkl'
+    # predict_list, reasons = form_predict_input_list(args, merged_list, word)
+    # predict_data = np.array(predict_list)
+    # predicted_list, rerank_reasons, rerank_scores = predict(predict_list, reasons ,modelpath)
 
 
 

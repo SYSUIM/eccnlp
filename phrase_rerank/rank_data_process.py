@@ -106,10 +106,6 @@ def add_embedding(args, uie_list):
             logging.info(f'add embedding for step {i}')
         data_pre = lines[i]
         dic = data_pre
-        # # no uie reason
-        # if len(data_pre["output"][0]) == 0: 
-        #     after_embedding_list.append(dic)
-        #     continue
         data=data_pre["output"][0]
         elem_num=len(data[args.type])   
         # at least one uie reason              
@@ -151,8 +147,8 @@ class BertTextNet(nn.Module):
             model_path, config=modelConfig)
         embedding_dim = self.textExtractor.config.hidden_size
  
-        self.fc = nn.Linear(embedding_dim, code_length)
-        self.tanh = torch.nn.Tanh()
+        # self.fc = nn.Linear(embedding_dim, code_length)
+        # self.tanh = torch.nn.Tanh()
  
     def forward(self, tokens, segments, input_masks):
         output = self.textExtractor(tokens, token_type_ids=segments,
@@ -160,9 +156,10 @@ class BertTextNet(nn.Module):
         text_embeddings = output[0][:, 0, :]
         # output[0](batch size, sequence length, model hidden dimension)
  
-        features = self.fc(text_embeddings)
-        features = self.tanh(features)
-        return features
+        # features = self.fc(text_embeddings)
+        # features = self.tanh(features)
+        # return features
+        return text_embeddings
 
 '''
 TODO 
@@ -321,16 +318,16 @@ def calculate_cot(uie_reason,vocab):
             cot=cot+1
     return cot
    
-# rank1 :3  rank2:  2  rank3: 1  rank4: 0  after: 0          
+# rank1 :10  rank2:  6  rank3: 2  rank4: 0  after: 0          
 def generate_label(line_elem,all_rows):
     line_elem.sort(key=functools.cmp_to_key(list_cmp))
     for j in range(len(line_elem)):
         if j==0:
-            line_elem[j].append(3)
+            line_elem[j].append(10)
         elif j == 1:
-            line_elem[j].append(2)
+            line_elem[j].append(6)
         elif j == 2:
-            line_elem[j].append(1)
+            line_elem[j].append(2)
         else:
             line_elem[j].append(0)
         all_rows.append(line_elem[j])        
@@ -355,21 +352,25 @@ def form_input_vector(all_rows,cnt):
 # train_list: test_list = 7:3
 def form_input_data(args, alllist, reason_list):
     all_list=[]
-    train_list=[]
-    test_list=[]
     reason_of_test=[]
-    len_data=len(alllist)
-    qid_num = alllist[len_data - 1][1] + 1
-    bre = int(math.floor(qid_num*0.7))
     for i in alllist:
         all_list.append(i)
-        if i[1] < bre :
-            train_list.append(i)
-        if i[1] >= bre:
-            test_list.append(i)
-            reason_of_test.append(reason_list[alllist.index(i)])
+        reason_of_test.append(reason_list[alllist.index(i)])
 
-    return all_list,train_list,test_list,reason_of_test 
+    return all_list, reason_of_test 
+
+def split_rerank_data(merged_list):
+    train_list = []
+    test_list = []
+    bre = int(math.floor(len(merged_list)*0.7))
+    for i in range(len(merged_list)):
+        if i < bre:
+            train_list.append(merged_list[i])
+        else:
+            test_list.append(merged_list[i])
+
+    return train_list, test_list
+
 
 # write uie reasons into reason_list
 def write_reason(args, data, reason_list):
@@ -397,14 +398,15 @@ def form_input_list(args, merged_list, vocab):
         data=data_pre["output"][0]
         elem_num=len(data[args.type])        
         if elem_num>1:           # number of uie reason >1
-            lab_txt=data_pre["result_list"][0]["text"]   #  label text 
+            lab_txt = [data['text'] for data in data_pre["result_list"]]  #  label text 
             if len(lab_txt) != 0:
                 key_num+=1 #合法quary
                 line_elem=[]
                 write_reason(args, data, reason_list)                   
                 for j in data[args.type]:
                     elem=[]  # all features
-                    tmp=string_similar(j["text"],lab_txt) 
+                    tmp = max([string_similar(j["text"],data) for data in lab_txt])
+
                     #elem 每一维的含义
                     # 第0维：key_num  第一维：相似度  第二维：概率  第三维：词出现的次数
                     # 第四维：label（1，-1）  第5维：归一后的出现次数
@@ -413,14 +415,13 @@ def form_input_list(args, merged_list, vocab):
                     elem = elem + j["s_before"] + j["s_after"]              
                     pro_cnt.append(cot)
                     line_elem.append(elem)
-                # print(f'line_elem:{line_elem}')
                 all_rows = generate_label(line_elem,all_rows) 
-    # print(f'len(all_rows): {len(all_rows)}')
+
     cnt = normalize(pro_cnt)
     list_len=len(all_rows)
     all = form_input_vector(all_rows,cnt)
-    all_list,train_list,test_list,reason_of_test = form_input_data(args, all, reason_list)
-    return all_list, train_list, test_list, reason_of_test
+    all_list, reason_of_test = form_input_data(args, all, reason_list)
+    return all_list, reason_of_test
 
 
 def form_predict_input_list(args, merged_list, vocab):
@@ -450,7 +451,7 @@ def form_predict_input_list(args, merged_list, vocab):
             all_rows = generate_label(line_elem,all_rows) 
     cnt = normalize(pro_cnt)
     all = form_input_vector(all_rows,cnt)
-    all_list,train_list,test_list,useless_reason= form_input_data(args, all, reasons)
+    all_list,useless_reason= form_input_data(args, all, reasons)
     return all_list, reasons
 
 
