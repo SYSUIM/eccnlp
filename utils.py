@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import classification_report
 from sklearn.model_selection import StratifiedShuffleSplit
+from nltk.translate.bleu_score import corpus_bleu
+from rouge import Rouge
 
 # logging.basicConfig(
 #     level=logging.INFO,
@@ -287,12 +289,48 @@ def substr2(string):
 
 
 
+# def match(label_set, string):
+#     for data in label_set:
+#         if data in string or string in data:  # exactly match
+#         # if set(data) & set(string) :     # character match
+#         # if substr2(data) & substr2(string) :    # substr2 match
+#             return True
+#     return False
+
+
+# n-bleu match
+# def match(label_set, string):
+
+#     references = [[list(data) for data in label_set]]
+#     candidates = [list(string)]
+#     weights = tuple([1/len(string) for i in string])
+#     score = corpus_bleu(references, candidates, weights=weights)
+
+#     return score > 0.0001
+
+
+# rouge match
 def match(label_set, string):
+
+    evaluated = ' '.join(list(string))
+    rouge = Rouge()
+    cmp = 0
+    
     for data in label_set:
-        # if set(data) & set(string) :
-        if substr2(data) & substr2(string) :
-            return True
-    return False
+        reference = ' '.join(list(data))
+        scores = rouge.get_scores(evaluated, reference)
+
+        # compare = scores[0]["rouge-1"]['r']
+
+        # compare = scores[0]["rouge-2"]['r']
+        compare = scores[0]["rouge-l"]['f']
+
+        cmp = max(cmp, compare)
+
+
+    return cmp > 0.3
+
+
 
 def accuracy_k(dic, model, type, k):
     '''
@@ -308,7 +346,7 @@ def accuracy_k(dic, model, type, k):
         return 0
         
     manual_label = {i['text'] for i in dic['result_list']}
-    uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True )]
+    uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True ) if i['text'] != '']
 
     model_res = uie_res if model == 'uie' else dic['rerank']  
 
@@ -320,7 +358,7 @@ def accuracy_k(dic, model, type, k):
 
 def reciprocal_rank_k(dic, model, type, k):
     manual_label = {i['text'] for i in dic['result_list']}
-    uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True )]
+    uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True ) if i['text'] != '']
 
     model_res = uie_res if model == 'uie' else dic['rerank']   
 
@@ -333,7 +371,7 @@ def reciprocal_rank_k(dic, model, type, k):
 
 def average_precision_k(dic, model, type, k):
     manual_label = {i['text'] for i in dic['result_list']}
-    uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True )]
+    uie_res =[i['text'] for i in sorted(dic['output'][0][type],key = lambda x: x['probability'], reverse=True ) if i['text'] != '']
 
     model_res = uie_res if model == 'uie' else dic['rerank']  
 
