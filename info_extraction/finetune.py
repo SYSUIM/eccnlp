@@ -47,7 +47,7 @@ def do_train(device,
     from utils import get_logger, get_log_path
 
     # ext_logger = get_logger('ext_logger', get_log_path() + '/ext.log')
-
+    paddle.set_device(device)
     root_dir = save_dir
     rank = paddle.distributed.get_rank()
     if paddle.distributed.get_world_size() > 1:
