@@ -165,7 +165,7 @@ def run_information_extraction(args, data):
     filted_result_on_test_data = [data for data in result_on_test_data if len(data['output'][0]) != 0]
     logging.info(f'length of filted_result_on_test_data: {len(filted_result_on_test_data)}')
 
-    evaluate_model('uie', filted_result_on_test_data)
+    # evaluate_model('uie', filted_result_on_test_data)
 
     return result_on_train_data, result_on_dev_data, result_on_test_data, filted_result_on_test_data
 
@@ -190,7 +190,6 @@ def run_rerank(args, uie_list, word, filted_result_on_test_data):
     #train
     train_list, reason_of_train = form_input_list(args, train_merged_list, word)
     training_data = np.array(train_list)
-    # training_data = training_data[:,:4]
     model = LambdaRank(training_data)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
@@ -201,13 +200,12 @@ def run_rerank(args, uie_list, word, filted_result_on_test_data):
     # evaluate
     test_list, test_reason = form_predict_input_list(args, test_merged_list, word)
     test_data = np.array(test_list)
-    
+
     ndcg , pred_scores= validate_rerank(args, test_data, 2)
     precision_k(args, test_data)
 
     predicted_list_rerank, rerank_reasons_test, rerank_scores_test = predict_rank(args, test_data, test_reason)
     rerank_on_test_data = add_rerank(args, rerank_reasons_test, rerank_scores_test, test_merged_list)
-
 
     evaluate_model('uie', rerank_on_test_data)
     evaluate_model('rerank_on_testdata', rerank_on_test_data)
@@ -222,50 +220,66 @@ if __name__ == '__main__':
 
     args = config.get_arguments()
 
-    
     log_path = check_log_dir(args.time)
-
-    # main_logger = get_logger('main_logger', log_path + '/main.log')
+    logging.info(f'{log_path}')
 
     args_message = '\n'.join([f'{k:<20}: {v}' for k, v in vars(args).items()])
     logging.info(f'\n{args_message}')
 
-    # clf_logger = get_logger('clf_logger', log_path + '/clf.log')
-    # ext_logger = get_logger('ext_logger', log_path + '/ext.log')
 
     raw_dataset = read_list_file(args.data)
     logging.info(f'length of raw dataset: {len(raw_dataset)}')
 
 
-    # waiting for re filter...
-    # dataset = re_filter(raw_dataset)
-    # main_logger.info(f'{len(raw_dataset) - len(dataset)} samples are filted by re_filter')
-    # res = ensemble_text_classification(args, dataset)
-    # for i in res:
-    #     print(i)
-    # exit(0)
-
     report, matrix = BertForClassification(args, raw_dataset)
     print(report, matrix)
+    # exit(0)
 
 
     result_on_train_data, result_on_dev_data, result_on_test_data, filted_result_on_test_data = run_information_extraction(args, raw_dataset)
     uie_list = result_on_train_data + result_on_dev_data + result_on_test_data
+    with open(log_path+"/uieres_result.txt", 'w') as f:
+        [f.write(str(data) + '\n') for data in uie_list]
 
+
+    # exit(0)
     # run_rerank
     word = build_thesaurus(raw_dataset, args.t_path)
     rerank_on_test_data = run_rerank(args, uie_list, word, filted_result_on_test_data)
 
-    # print 80 cases
+    for j in range(len(rerank_on_test_data)):
+        for i in range(len(rerank_on_test_data[j]['output'][0][args.type])):
+            rerank_on_test_data[j]['output'][0][args.type][i]['s_before'] = []
+            rerank_on_test_data[j]['output'][0][args.type][i]['s_after'] = []
 
-    # for j in range(len(rerank_on_test_data)):
-    #     for i in range(len(rerank_on_test_data[j]['output'][0][args.type])):
-    #         rerank_on_test_data[j]['output'][0][args.type][i]['s_before'] = []
-    #         rerank_on_test_data[j]['output'][0][args.type][i]['s_after'] = []
 
-    with open(log_path+"/rerank_on_test_data_match.txt", 'w') as f:
+
+    with open(log_path+"/rerank_res_on_testdata"+".txt", 'w') as f:
         [f.write(str(data) + '\n') for data in rerank_on_test_data]
 
+
+
+
+    # # 评估模型
+
+    # lr = 'lr-1e-4'
+    # epo = 'epo-200'
+    # feature = 'all-features'
+    # embedding = 'embedding-all'
+    # match_way = 'rouge-L(最长公共子序列)-f1-match-0.3(阈值)'
+    # # match_way = 'exactly match'
+    # label_way = '10-6-2-0'
+    # logging.info(f'---------TEST----{lr}---{epo}----{feature}----{embedding}----{match_way}----{label_way}-----------')
+    # rerank_on_test_data = read_list_file('/data/fkj2023/Project/eccnlp_1/log/20230427v3/rerank_res_on_testdata.txt')
+    # logging.info(f'------------------{match_way} ---------------------')
+    # evaluate_model('uie', rerank_on_test_data)
+    # evaluate_model('rerank_on_testdata', rerank_on_test_data)
+    # logging.info(f'---------TEST----{lr}---{epo}----{feature}----{embedding}----{match_way}----{label_way}-----------')
+    # exit(0)
+
+
+    # logging.info(f'---------TEST----{lr}---{epo}----{feature}----{embedding}----{match_way}----{label_way}-----------')
+    
     # exit(0)
 
     # all_dict = text_classification(args)
