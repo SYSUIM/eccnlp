@@ -166,7 +166,7 @@ def BertForClassification(args, dataset):
         learning_rate=2e-5,
         per_device_train_batch_size=args.bert_batch_size,
         per_device_eval_batch_size=64,
-        num_train_epochs=1,
+        num_train_epochs=args.bert_epochs,
         weight_decay=0.01,
         disable_tqdm=True,
         save_steps = 100

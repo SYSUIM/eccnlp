@@ -26,6 +26,7 @@ def get_arguments():
     '''
     parser.add_argument('--bert_pretrained_model', type = str, required = True, help='model path of pretrained model')
     parser.add_argument('--bert_batch_size', type = int, default = 64, help='batch size of bert')
+    parser.add_argument('--bert_epochs', type = int, default = 20, help='epochs of bert')
     parser.add_argument('--bert_save_dir', type = str, required = True, help='save path of finetuned model')
     parser.add_argument('--bert_disable_tqdm', type = bool, default = True, help='whether to disable tqdm when training bert')
     
