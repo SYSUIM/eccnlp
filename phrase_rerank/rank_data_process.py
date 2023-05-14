@@ -21,10 +21,14 @@ def read_list_file(path: str) -> list:
     with open(path, 'r') as f:
         for line in f:
             data_list.append(eval(line.strip('\n'), {'nan': ''}))
-    # logging.info(f'read {path} DONE. Length: {len(data_list)}')
-
     return data_list
 
+def del_text_null(res_list):
+    new_list = []
+    for i in range(len(res_list)):
+        if(res_list[i]['text'] != ''):
+            new_list.append(res_list[i])
+    return new_list
 
 def uie_list_filter(args, uie_list):
 
@@ -45,9 +49,13 @@ def uie_list_filter(args, uie_list):
         elem_num=len(data[args.type])   
         # at least one uie reason              
         if elem_num > 0: 
+            res_list = del_text_null(data[args.type])
+        else:
+            continue
+        if len(res_list) > 0:    
             filtered_uie_list_predict.append(lines[i])
 
-            for j in data[args.type]:
+            for j in res_list:
                 lb = 0
                 re = -1    
                 if j['start'] > 100 :
@@ -58,7 +66,7 @@ def uie_list_filter(args, uie_list):
                 s_after = s_cls + str_pre[j["end"] : re] + s_sep
                 context_list.extend([s_before, s_after])
 
-        if  elem_num > 1: 
+        if  len(res_list)> 1: 
             lab_txt=data_pre["result_list"][0]["text"]   #  label text 
             if len(lab_txt) != 0:
                 #合法quary
@@ -71,10 +79,9 @@ def uie_list_filter(args, uie_list):
 
 def add_embedding_new(args, filtered_uie_list, context_list):
     textNet = BertTextNet(args.code_length)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    textNet.to(device)
+    textNet.to('cuda')
     tokenizer = BertTokenizer.from_pretrained(args.vocab_path)   
-    sen_f = sentence_features(textNet, tokenizer, context_list, device)     
+    sen_f = sentence_features(textNet, tokenizer, context_list)     
     lines = filtered_uie_list
     after_embedding_list = []
     for i in range(len(lines)):
@@ -95,9 +102,11 @@ def add_embedding_new(args, filtered_uie_list, context_list):
 
 
 def add_embedding(args, uie_list):
+    device_count = torch.cuda.device_count()
     textNet = BertTextNet(args.code_length)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    textNet.to(device)
+    model = textNet.to('cuda')
+    if device_count > 1:
+        model = torch.nn.DataParallel(model)
     tokenizer = BertTokenizer.from_pretrained(args.vocab_path)        
     lines = uie_list 
     after_embedding_list = []
@@ -124,7 +133,7 @@ def add_embedding(args, uie_list):
                     re = j["end"] + 100
                 s_before = s_cls + str_pre[lb : j["start"]] + s_sep
                 s_after = s_cls + str_pre[j["end"] : re] + s_sep
-                sen_f = sentence_features(textNet, tokenizer, [s_before, s_after], device)
+                sen_f = sentence_features(model, tokenizer, [s_before, s_after])
                 j['s_before'] = sen_f[0]
                 j['s_after'] = sen_f[1]
                 uie_re.append(j)
@@ -164,9 +173,8 @@ class BertTextNet(nn.Module):
 '''
 TODO 
 1. tokenization faster
-2. parallel compute using multiple GPUs
 '''
-def sentence_features(textNet, tokenizer, texts, device):
+def sentence_features(textNet, tokenizer, texts):
     tokens, segments, input_masks = [], [], []
     for text in texts:
         tokenized_text = tokenizer.tokenize(text)  
@@ -187,7 +195,7 @@ def sentence_features(textNet, tokenizer, texts, device):
     segments_tensors = torch.tensor(segments)
     input_masks_tensors = torch.tensor(input_masks)
 
-    tokens_tensor, segments_tensors, input_masks_tensors = tokens_tensor.to(device), segments_tensors.to(device), input_masks_tensors.to(device)
+    tokens_tensor, segments_tensors, input_masks_tensors = tokens_tensor.to('cuda'), segments_tensors.to('cuda'), input_masks_tensors.to('cuda')
 
     text_hashCodes = textNet(tokens_tensor, segments_tensors, input_masks_tensors)  # text_hashCodes is a 16-dim text feature
 
@@ -254,25 +262,6 @@ def print_list(alist, log):
     for i in alist:
         log.info(i)
 
-def get_logger1(name,logpath):
-    logger = logging.getLogger(name)
-    filename = f'{datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}_{name}.log'
-    fh = logging.FileHandler(logpath + filename, mode='w+', encoding='utf-8')
-    formatter = logging.Formatter('%(message)s')
-    logger.setLevel(logging.INFO)
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-    return logger
-
-def get_logger2(name, logpath):
-    logger = logging.getLogger(name)
-    filename = f'{datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}_{name}.log'
-    fh = logging.FileHandler(logpath + filename, mode='a+', encoding='utf-8')
-    formatter = logging.Formatter('%(asctime)s %(message)s')
-    logger.setLevel(logging.INFO)
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-    return logger
 
 '''
 TODO move to utils.py
@@ -474,31 +463,31 @@ if __name__ == "__main__":
     filepath ='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/merged/2023-03-02_merged_list.log'
     merged_list = read_list_file(filepath)
 
-    if (args.usage == "train"):
-        log1=get_logger1('train', logpath)
-        log2=get_logger1('test', logpath)
-        log3=get_logger1('all_data', logpath)
-        log4=get_logger1('reason_of_test', logpath)
+    # if (args.usage == "train"):
+    #     log1=get_logger1('train', logpath)
+    #     log2=get_logger1('test', logpath)
+    #     log3=get_logger1('all_data', logpath)
+    #     log4=get_logger1('reason_of_test', logpath)
 
-        all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list, vocab)
+    #     all_list, train_list, test_list, reason_of_test = form_input_list(args, merged_list, vocab)
 
-        for i in range(len(train_list)):
-            log1.info(train_list[i]) 
-        for i in range(len(test_list)):
-            log2.info(test_list[i])
-        for i in range(len(all_list)):
-            log3.info(all_list[i])
-        for i in range(len(reason_of_test)):
-            log4.info(reason_of_test[i])
+    #     for i in range(len(train_list)):
+    #         log1.info(train_list[i]) 
+    #     for i in range(len(test_list)):
+    #         log2.info(test_list[i])
+    #     for i in range(len(all_list)):
+    #         log3.info(all_list[i])
+    #     for i in range(len(reason_of_test)):
+    #         log4.info(reason_of_test[i])
 
-    if (args.usage == "predict"):
-        log5=get_logger1('all_predict_data', logpath)
-        log6=get_logger1('all_predict_reasons', logpath)
+    # if (args.usage == "predict"):
+    #     log5=get_logger1('all_predict_data', logpath)
+    #     log6=get_logger1('all_predict_reasons', logpath)
         
-        all_list, reasons = form_predict_input_list(args, merged_list, vocab)
+    #     all_list, reasons = form_predict_input_list(args, merged_list, vocab)
 
-        for i in range(len(all_list)):
-            log5.info(all_list[i]) 
+    #     for i in range(len(all_list)):
+    #         log5.info(all_list[i]) 
 
-        for i in range(len(reasons)):
-            log6.info(reasons[i]) 
+    #     for i in range(len(reasons)):
+    #         log6.info(reasons[i]) 

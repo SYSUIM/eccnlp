@@ -23,7 +23,7 @@ def get_arguments():
     parser.add_argument('--bert_tokenizer_path', type = str, required = True, help='model path of trained bert')
     parser.add_argument('--bert_model_path', type = str, required = True, help='model path of trained bert')
     parser.add_argument('--bert_batch_size', type = int, default = 64, help='batch size of bert')
-
+    parser.add_argument('--sentence', type = str)
 
     '''
     here are parameters for Chinese Text Classification
@@ -104,7 +104,7 @@ def get_arguments():
     parser.add_argument('--f_num', type=int, default=34, help='feature number')
     parser.add_argument('--vocab_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/bert_model/vocab.txt',help='vocab path')
     parser.add_argument('--code_length', type=int, default=16,help='the dimension of sentence features') 
-    parser.add_argument('--rerank_save_path', type=str, default='/data/fkj2023/Project/eccnlp_local/phrase_rerank/data/data_model/model_v0_parameter_bak.pkl',help='lambdarank path')
+    parser.add_argument('--rerank_save_path', type=str, default='/data/fkj2023/Project/eccnlp_1/checkpoint/rerank_model/04_06_17_33_20.pkl',help='lambdarank path')
     '''
     TODO use train data path 
     '''
