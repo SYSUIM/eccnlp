@@ -136,7 +136,7 @@ def do_train(device,
                 tic_train = time.time()
 
             if global_step % valid_steps == 0 and rank == 0:
-                save_dir = os.path.join(root_dir, "model_%d" % global_step)
+                save_dir = os.path.join(save_dir, "model_%d" % global_step)
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
                 model_to_save = model._layers if isinstance(
@@ -155,11 +155,11 @@ def do_train(device,
                         f"best F1 performence has been updated: {best_f1:.5f} --> {f1:.5f}"
                     )
                     best_f1 = f1
-                    save_dir = os.path.join(root_dir, "model_best")
+                    save_dir_best = os.path.join(root_dir, "model_best")
                     model_to_save = model._layers if isinstance(
                         model, paddle.DataParallel) else model
-                    model_to_save.save_pretrained(save_dir)
-                    tokenizer.save_pretrained(save_dir)
+                    model_to_save.save_pretrained(save_dir_best)
+                    tokenizer.save_pretrained(save_dir_best)
                 tic_train = time.time()
 
 
