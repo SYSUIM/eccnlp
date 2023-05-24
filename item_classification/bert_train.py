@@ -162,14 +162,14 @@ def BertForClassification(args, dataset):
         load_best_model_at_end = True,
         save_strategy = "steps",
         evaluation_strategy = "steps",
-        logging_steps = 100,
+        logging_steps = args.bert_logging_steps,
         learning_rate=2e-5,
         per_device_train_batch_size=args.bert_batch_size,
         per_device_eval_batch_size=64,
         num_train_epochs=args.bert_epochs,
         weight_decay=0.01,
         disable_tqdm=True,
-        save_steps = 100
+        save_steps = args.bert_save_steps
     )
 
     trainer = BertClassificationTrainer(

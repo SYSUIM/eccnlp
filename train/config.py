@@ -29,6 +29,8 @@ def get_arguments():
     parser.add_argument('--bert_epochs', type = int, default = 20, help='epochs of bert')
     parser.add_argument('--bert_save_dir', type = str, required = True, help='save path of finetuned model')
     parser.add_argument('--bert_disable_tqdm', type = bool, default = True, help='whether to disable tqdm when training bert')
+    parser.add_argument('--bert_logging_steps', type = int, default =100, help='bert_logging_steps')
+    parser.add_argument('--bert_save_steps', type = int, default = 100, help='bert_save_steps')
     
 
     '''
